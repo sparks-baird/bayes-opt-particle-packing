@@ -20,6 +20,8 @@ flit install --pth-file
 ```
 
 ## Usage
+The following is based on [boppf_example.py](examples/boppf_example.py)
+
 First, take care of imports.
 ```python
 from boppf.boppf import BOPPF
