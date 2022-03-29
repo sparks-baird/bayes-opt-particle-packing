@@ -1,4 +1,5 @@
 """Call the appropriate MATLAB scripts and executable."""
+from pathlib import Path
 from subprocess import DEVNULL, STDOUT, Popen, PIPE
 from os.path import join
 from sys import executable
@@ -47,6 +48,7 @@ def particle_packing_simulation(
     fractions = double(list(fractions))
 
     # generate input file
+    Path(join("boppf", "data")).mkdir(exist_ok=True, parents=True)
     eng.write_input_file(uid, means, stds, fractions, particles, nargout=0)
 
     # run the particle packing simulation (executable)

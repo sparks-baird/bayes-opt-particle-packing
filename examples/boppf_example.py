@@ -11,7 +11,7 @@ dummy = True
 if dummy:
     n_sobol = 2
     n_bayes = 3
-    particles = 10
+    particles = 100
 else:
     n_sobol = 16
     n_bayes = 1000 - 16

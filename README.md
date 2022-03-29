@@ -11,7 +11,7 @@ the output files (renamed to `read_vol_frac.m`). These files should be placed in
 
 A local installation can be performed via:
 ```bash
-conda create -n packing python==3.8.*
+conda create -n packing python==3.9.*
 conda activate packing
 git clone https://github.com/sparks-baird/bayes-opt-particle-packing.git
 cd bayes-opt-particle-packing
