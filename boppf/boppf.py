@@ -1,7 +1,6 @@
 """Perform Bayesian optimization on the particle packing simulation parameters."""
 from os.path import join
 from pathlib import Path
-from warnings import warn
 from boppf.utils.ax import optimize_ppf
 from multiprocessing import cpu_count
 
@@ -17,15 +16,9 @@ class BOPPF:
         savename="experiment.json",
         max_parallel=cpu_count(),  # hyperthreading
     ) -> None:
-        if dummy:
-            self.particles = 100
-            self.n_sobol = 4
-            self.n_bayes = 6
-            warn("since dummy is True, overriding particles, n_sobol, and n_bayes")
-        else:
-            self.particles = particles
-            self.n_sobol = n_sobol
-            self.n_bayes = n_bayes
+        self.particles = particles
+        self.n_sobol = n_sobol
+        self.n_bayes = n_bayes
         self.dummy = dummy
         print(f"maximum number of parallel jobs: {max_parallel}")
         self.max_parallel = max_parallel
@@ -43,7 +36,7 @@ class BOPPF:
             y_train = y_train.head(10)
 
         # %% optimization
-        self.ax_client, best_parameters, means, covariances = optimize_ppf(
+        self.ax_client, best_parameters, mean, covariance = optimize_ppf(
             X_train,
             y_train,
             particles=self.particles,
@@ -54,6 +47,6 @@ class BOPPF:
         )
 
         if return_ax_client:
-            return best_parameters, means, covariances, self.ax_client
+            return best_parameters, mean, covariance, self.ax_client
         else:
-            return best_parameters, means, covariances
+            return best_parameters, mean, covariance
