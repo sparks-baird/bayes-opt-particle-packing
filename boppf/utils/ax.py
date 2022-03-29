@@ -1,7 +1,4 @@
 from pathlib import Path
-from time import time
-
-from pandas import DataFrame, concat
 from boppf.utils.particle_packing import particle_packing_simulation
 from ax.service.ax_client import AxClient
 import numpy as np
@@ -10,7 +7,6 @@ from uuid import uuid4
 
 from boppf.utils.data import mean_names, std_names, frac_names, target_name
 
-from ax.modelbridge.factory import get_GPEI, get_sobol
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
 
@@ -97,7 +93,7 @@ def optimize_ppf(
 
     best_parameters, values = ax_client.get_best_parameters()
 
-    means, covariances = values
+    mean, covariance = values
 
     # For custom filepath, pass `filepath` argument.
     ax_client.save_to_json_file(filepath=savepath)
@@ -128,7 +124,7 @@ def optimize_ppf(
     result_path = join(dirname(savepath), "results.csv")
     df.to_csv(result_path)
 
-    return ax_client, best_parameters, means, covariances
+    return ax_client, best_parameters, mean, covariance
 
 
 # %% code graveyard
