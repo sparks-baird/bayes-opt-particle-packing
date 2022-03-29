@@ -130,9 +130,6 @@ dmypy.json
 **/particle_packing_sim.exe
 **/*.inp
 **/*.stat
-**/packing-fraction.csv
-**/VAE Generation 1.xlsx
-**/VAE Predictions.xlsx
 **/*.out
 **/*.pack
 **/write_input_file.m
