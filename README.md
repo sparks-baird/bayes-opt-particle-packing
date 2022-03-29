@@ -39,11 +39,17 @@ Load `X_train` and `y_train` from [packing-fraction.csv](data/packing-fraction.c
 data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname="packing-fraction.csv", folder="data")
+```
 
+Define how many pseudo-random initial Sobol points to generate (`n_sobol`, typical is twice the number of parameters), the number of Bayesian optimization iterations `n_bayes`, and the number of particles to drop in each simulation (`particles`).
+```python
 n_sobol = 16
 n_bayes = 1000 - 16
 particles = int(1.5e6)
+```
 
+Instantiate the `BOPPF` class, and call the `optimize` method.
+```python
 boppf = BOPPF(n_sobol=n_sobol, n_bayes=n_bayes, particles=particles)
 best_parameters, means, covariances, ax_client = boppf.optimize(
     X_train, y_train, return_ax_client=True
