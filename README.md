@@ -18,7 +18,7 @@ cd bayes-opt-particle-packing
 conda install flit
 flit install --pth-file
 ```
-To be able to run the two MATLAB scripts (which again, are not released here) requires an active MATLAB subscription and installation. The MATLAB version must be [compatible](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/support/sysreq/files/python-compatibility.pdf) with the Python version that you're using. For example, `R2022a` supports Python `3.8` and `3.9`. Additionally, you will need to run a `setup.py` script **as an administrator** within the MATLAB installation directory per MATLAB's [instructions](https://www.mathworks.com/help/matlab/matlab_external/install-matlab-engine-api-for-python-in-nondefault-locations.html). Make sure that your `conda` environment is activated when you do this.
+To be able to run the two MATLAB scripts (which again, are not released here) requires an active MATLAB subscription and installation and the Statistics and Machine Learning Toolbox. The MATLAB version must be [compatible](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/support/sysreq/files/python-compatibility.pdf) with the Python version that you're using. For example, `R2022a` supports Python `3.8` and `3.9`. Additionally, you will need to run a `setup.py` script **as an administrator** within the MATLAB installation directory per MATLAB's [instructions](https://www.mathworks.com/help/matlab/matlab_external/install-matlab-engine-api-for-python-in-nondefault-locations.html). Make sure that your `conda` environment is activated when you do this.
 
 Replace `<matlabroot>` with the appropriate path to the MATLAB installation directory. For example, `C:\Program Files\MATLAB\R2021a`, and run the following commands:
 ```bash
