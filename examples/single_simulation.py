@@ -5,14 +5,16 @@ dummy = True
 
 if dummy:
     uid = "tmp"
-    particles = 100
+    particles = 10
 else:
     particles = 1500000
 
-means = [120, 120, 120]
-stds = [10, 10, 10]
+means = [120.0, 120.0, 120.0]
+stds = [10.0, 10.0, 10.0]
 fractions = [0.33, 0.33]
 
 vol_frac = particle_packing_simulation(
     uid=uid, particles=particles, means=means, stds=stds, fractions=fractions
 )
+
+1 + 1
