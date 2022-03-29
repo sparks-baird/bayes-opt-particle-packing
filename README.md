@@ -2,7 +2,7 @@
 
 Bayesian optimization of particle packing fractions for nuclear fuels. The objective function (not released here) is based on proprietary code from Northrop Grumman Innovation Systems (NGIS).
 
-To reproduce, this requires a proprietary executable (renamed to
+To reproduce, this requires a proprietary Windows executable (renamed to
 `particle_packing_sim.exe`), a MATLAB file
 for writing the input files (renamed to `write_input_file.m`), and a MATLAB file for reading the volume fraction from
 the output files (renamed to `read_vol_frac.m`). These files should be placed into the [boppf/utils](boppf/utils) directory.
@@ -11,13 +11,24 @@ the output files (renamed to `read_vol_frac.m`). These files should be placed in
 
 A local installation can be performed via:
 ```bash
-conda create -n packing python==3.9.*
+conda create -n packing python==3.8.*
 conda activate packing
 git clone https://github.com/sparks-baird/bayes-opt-particle-packing.git
 cd bayes-opt-particle-packing
 conda install flit
 flit install --pth-file
 ```
+
+To be able to run the two MATLAB scripts (which again, are not released here) requires an active MATLAB subscription and installation. The MATLAB version must be [compatible](https://www.mathworks.com/content/dam/mathworks/mathworks-dot-com/support/sysreq/files/python-compatibility.pdf) with the Python version that you're using. Additionally, you will need to run a `setup.py` script within the MATLAB installation directory per MATLAB's [instructions](https://www.mathworks.com/help/matlab/matlab_external/install-matlab-engine-api-for-python-in-nondefault-locations.html). Make sure that your `conda` environment is activated.
+
+Replace `<matlabroot>` with the appropriate path to the MATLAB installation directory. For example, `C:\Program Files\MATLAB\R2021a`
+```bash
+cd "<matlabroot>\extern\engines\python"
+python setup.py build --build-base="C:\Temp" install
+```
+`--build-base="C:\Temp"` circumvents "access denied" issues that can crop up even when running in an Administrator shell.
+
+For troubleshooting issues with Windows/Anaconda/MATLAB installation, see also [1](https://www.mathworks.com/matlabcentral/answers/346068-how-do-i-properly-install-matlab-engine-using-the-anaconda-package-manager-for-python), [2](https://stackoverflow.com/questions/33357739/problems-installing-matlab-engine-for-python-with-anaconda), [3](https://stackoverflow.com/questions/50488997/anaconda-python-modulenotfounderror-no-module-named-matlab).
 
 ## Usage
 The following is based on [boppf_example.py](examples/boppf_example.py), which can be run via `python examples/boppf_example.py`
