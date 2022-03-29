@@ -1,4 +1,4 @@
-# bayes-opt-particle-packing
+# Bayesian Optimization of Particle Packing Fractions (BOPPF)
 
 Bayesian optimization of particle packing fractions for nuclear fuels. The objective function (not released here) is based on proprietary code from Northrop Grumman Innovation Systems (NGIS).
 
