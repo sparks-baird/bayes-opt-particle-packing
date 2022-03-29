@@ -65,7 +65,7 @@ def optimize_ppf(
         ]
     )
 
-    ax_client = AxClient(generation_strategy=gs)
+    ax_client = AxClient(generation_strategy=gs, enforce_sequential_optimization=False)
 
     ax_client.create_experiment(
         name="particle_packing",
@@ -88,7 +88,7 @@ def optimize_ppf(
         return {target_name: (vol_frac, None)}
 
     for i in range(n_trials):
-        parameters, trial_index = ax_client.get_next_trial()
+        parameterizations, is_complete = ax_client.get_next_trials(max_parallel)
         ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
 
     best_parameters, values = ax_client.get_best_parameters()
