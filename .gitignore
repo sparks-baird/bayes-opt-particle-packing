@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+**/particle_packing_sim.exe
+**/*.inp
+**/*.stat
+**/packing-fraction.csv
+**/VAE Generation 1.xlsx
+**/VAE Predictions.xlsx
+**/*.out
+**/*.pack
+**/write_input_file.m
+**/read_vol_frac.m

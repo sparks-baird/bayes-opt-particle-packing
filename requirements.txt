@@ -1,0 +1,3 @@
+pandas==1.4.1
+ax-platform==0.2.4
+# matlab engine
