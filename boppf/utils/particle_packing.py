@@ -53,12 +53,10 @@ def particle_packing_simulation(
     util_dir = join("boppf", "utils")
     data_dir = join("boppf", "data")
     fpath = join(util_dir, "run_executable.py")
-    p = Popen(
-        [executable, fpath], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT, shell=True
-    )
-    idpath = join(data_dir, f"{uid}.inp")
-    input = str.encode(idpath)
-    p.communicate(input=input)
+    with Popen([executable, fpath], stdin=PIPE, stdout=DEVNULL, stderr=STDOUT) as p:
+        idpath = join(data_dir, f"{uid}.inp")
+        input = str.encode(idpath)
+        p.communicate(input=input)
 
     # extract the volumetric packing fraction
     vol_frac = eng.read_vol_frac(uid, data_dir)
