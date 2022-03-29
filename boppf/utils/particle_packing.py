@@ -13,7 +13,7 @@ from matlab import engine, double
 
 def particle_packing_simulation(
     uid: str = "tmp",
-    particles: int = 1500000,
+    particles: int = int(1.5e6),
     means: List[float] = [120, 120, 120],
     stds: List[float] = [10, 10, 10],
     fractions: List[float] = [0.33, 0.33],
