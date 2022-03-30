@@ -136,3 +136,4 @@ dmypy.json
 **/read_vol_frac.m
 **/VAE Generation 1.xlsx
 **/VAE Predictions.xlsx
+**/evaluate_*/*
