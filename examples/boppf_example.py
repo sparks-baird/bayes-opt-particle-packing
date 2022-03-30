@@ -1,4 +1,5 @@
 """Reproduce paper results."""
+import torch
 from boppf.boppf import BOPPF
 from boppf.utils.data import load_data
 from time import time
@@ -8,6 +9,8 @@ fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
 dummy = False
+
+device_str = "cuda"  # "cpu"
 
 if dummy:
     n_sobol = 2
@@ -24,6 +27,7 @@ boppf = BOPPF(
     n_bayes=n_bayes,
     particles=particles,
     include_logical_cores=False,
+    torch_device=torch.device(device_str),
 )
 
 t0 = time()

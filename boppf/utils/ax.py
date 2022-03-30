@@ -1,6 +1,7 @@
 import logging
 from os import getcwd
 from pathlib import Path
+import torch
 from tqdm import tqdm
 
 from psutil import cpu_count
@@ -33,6 +34,7 @@ def optimize_ppf(
     n_bayes=100,
     savepath=join("results", "experiment.json"),
     max_parallel=cpu_count(logical=False),
+    torch_device = torch.device("cuda"),
 ):
     n_train = X_train.shape[0]
 
@@ -64,10 +66,7 @@ def optimize_ppf(
                 num_trials=n_sobol,
                 # min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
                 max_parallelism=max_parallel,  # Max parallelism for this step
-                model_kwargs={
-                    "seed": 999,
-                    "fit_out_of_design": True,
-                },  # Any kwargs you want passed into the model
+                model_kwargs={"seed": 999},  # Any kwargs you want passed into the model
                 model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
             ),
             # 2. Bayesian optimization step (requires data obtained from previous phase and learns
@@ -77,6 +76,7 @@ def optimize_ppf(
                 num_trials=-1,  # No limitation on how many trials should be produced from this step
                 model_kwargs={"fit_out_of_design": True},
                 max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
+                model_gen_kwargs={"torch_device": torch_device},
                 # More on parallelism vs. required samples in BayesOpt:
                 # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
             ),

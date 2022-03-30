@@ -2,6 +2,8 @@
 from os import getcwd
 from os.path import join
 from pathlib import Path
+
+import torch
 from boppf.utils.ax import optimize_ppf
 from psutil import cpu_count
 import ray
@@ -20,17 +22,20 @@ class BOPPF:
         max_parallel="cpu_count",  # hyperthreading or not
         include_logical_cores=False,
         debug=False,
+        torch_device=torch.device("cuda"),
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
         self.n_bayes = n_bayes
         self.dummy = dummy
-        print(f"maximum number of parallel jobs: {max_parallel}")
 
         if isinstance(max_parallel, str) and max_parallel == "cpu_count":
             max_parallel = max(1, cpu_count(logical=include_logical_cores))
 
+        print(f"maximum number of parallel jobs: {max_parallel}")
+
         self.max_parallel = max_parallel
+        self.torch_device = torch_device
 
         if dummy:
             save_dir = join(save_dir, "dummy")
@@ -57,6 +62,7 @@ class BOPPF:
             n_bayes=self.n_bayes,
             savepath=self.savepath,
             max_parallel=self.max_parallel,
+            torch_device=self.torch_device,
         )
 
         if return_ax_client:
