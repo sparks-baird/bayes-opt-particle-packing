@@ -1,6 +1,7 @@
 import logging
-from os import getcwd, getcwdb
+from os import getcwd
 from pathlib import Path
+from tqdm import tqdm
 
 from psutil import cpu_count
 from boppf.utils.particle_packing import particle_packing_simulation
@@ -61,9 +62,12 @@ def optimize_ppf(
             GenerationStep(
                 model=Models.SOBOL,
                 num_trials=n_sobol,
-                min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
+                # min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
                 max_parallelism=max_parallel,  # Max parallelism for this step
-                model_kwargs={"seed": 999},  # Any kwargs you want passed into the model
+                model_kwargs={
+                    "seed": 999,
+                    "fit_out_of_design": True,
+                },  # Any kwargs you want passed into the model
                 model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
             ),
             # 2. Bayesian optimization step (requires data obtained from previous phase and learns
@@ -82,7 +86,7 @@ def optimize_ppf(
     ax_client = AxClient(
         generation_strategy=gs,
         enforce_sequential_optimization=False,
-        verbose_logging=True,
+        verbose_logging=False,
     )
 
     ax_client.create_experiment(
@@ -93,7 +97,7 @@ def optimize_ppf(
         parameter_constraints=comp_constraint,  # compositional constraint
     )
 
-    for i in range(n_train):
+    for i in tqdm(range(n_train)):
         ax_client.attach_trial(X_train.iloc[i].to_dict())
         ax_client.complete_trial(trial_index=i, raw_data=y_train[i])
 
@@ -121,7 +125,7 @@ def optimize_ppf(
         fail_fast=True,
         num_samples=n_trials,
         search_alg=algo,
-        verbose=3,  # Set this level to 1 to see status updates and to 2 to also see trial results.
+        verbose=2,  # Set this level to 1 to see status updates and to 2 to also see trial results.
         local_dir=getcwd(),
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
