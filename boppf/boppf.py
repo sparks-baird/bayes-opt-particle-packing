@@ -17,7 +17,8 @@ class BOPPF:
         n_bayes=1000,
         save_dir="results",
         savename="experiment.json",
-        max_parallel=max(1, cpu_count(logical=False)),  # hyperthreading or not
+        max_parallel="cpu_count",  # hyperthreading or not
+        include_logical_cores=False,
         debug=False,
     ) -> None:
         self.particles = particles
@@ -25,6 +26,10 @@ class BOPPF:
         self.n_bayes = n_bayes
         self.dummy = dummy
         print(f"maximum number of parallel jobs: {max_parallel}")
+
+        if isinstance(max_parallel, str) and max_parallel == "cpu_count":
+            max_parallel = max(1, cpu_count(logical=include_logical_cores))
+
         self.max_parallel = max_parallel
 
         if dummy:
