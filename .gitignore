@@ -137,3 +137,5 @@ dmypy.json
 **/VAE Generation 1.xlsx
 **/VAE Predictions.xlsx
 **/evaluate_*/*
+results/dummy/experiment.json
+results/dummy/results.csv
