@@ -1,14 +1,27 @@
+import logging
+from os import getcwd, getcwdb
 from pathlib import Path
+
+from psutil import cpu_count
 from boppf.utils.particle_packing import particle_packing_simulation
 from ax.service.ax_client import AxClient
 import numpy as np
 from os.path import join, dirname
 from uuid import uuid4
 
+from ray import tune
+from ray.tune import report
+from ray.tune.suggest.ax import AxSearch
+
 from boppf.utils.data import mean_names, std_names, frac_names, target_name
 
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
+
+logger = logging.getLogger(tune.__name__)
+logger.setLevel(
+    level=logging.CRITICAL
+)  # Reduce the number of Ray warnings that are not relevant here.
 
 
 def optimize_ppf(
@@ -18,7 +31,7 @@ def optimize_ppf(
     n_sobol=None,
     n_bayes=100,
     savepath=join("results", "experiment.json"),
-    max_parallel=4,
+    max_parallel=cpu_count(logical=False),
 ):
     n_train = X_train.shape[0]
 
@@ -58,6 +71,7 @@ def optimize_ppf(
             GenerationStep(
                 model=Models.GPEI,
                 num_trials=-1,  # No limitation on how many trials should be produced from this step
+                model_kwargs={"fit_out_of_design": True},
                 max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
                 # More on parallelism vs. required samples in BayesOpt:
                 # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
@@ -65,7 +79,11 @@ def optimize_ppf(
         ]
     )
 
-    ax_client = AxClient(generation_strategy=gs, enforce_sequential_optimization=False)
+    ax_client = AxClient(
+        generation_strategy=gs,
+        enforce_sequential_optimization=False,
+        verbose_logging=True,
+    )
 
     ax_client.create_experiment(
         name="particle_packing",
@@ -85,11 +103,28 @@ def optimize_ppf(
         fractions = np.array([parameters.get(name) for name in subfrac_names])
         uid = str(uuid4())[0:8]
         vol_frac = particle_packing_simulation(uid, particles, means, stds, fractions)
-        return {target_name: (vol_frac, None)}
+        d = {target_name: vol_frac}  # can't specify SEM perhaps?
+        report(**d)
 
-    for i in range(n_trials):
-        parameterizations, is_complete = ax_client.get_next_trials(max_parallel)
-        ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
+    # sequential
+    # for i in range(n_trials):
+    #     parameters, trial_index = ax_client.get_next_trial(max_parallel)
+    #     ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
+
+    # Set up AxSearcher in RayTune
+    algo = AxSearch(ax_client=ax_client)
+    # Wrap AxSearcher in a concurrently limiter, to ensure that Bayesian optimization
+    # receives the data for completed trials before creating more trials
+    algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=max_parallel)
+    tune.run(
+        evaluate,
+        fail_fast=True,
+        num_samples=n_trials,
+        search_alg=algo,
+        verbose=3,  # Set this level to 1 to see status updates and to 2 to also see trial results.
+        local_dir=getcwd(),
+        # To use GPU, specify: resources_per_trial={"gpu": 1}.
+    )
 
     best_parameters, values = ax_client.get_best_parameters()
 
@@ -115,10 +150,13 @@ def optimize_ppf(
 
     df["runtime"] = [get_runtime(trial) for trial in trials]
 
-    pred = list(ax_client.get_model_predictions().values())
-    pred = pred[n_train - 1 :]
-    df["vol_frac_pred"] = [p[target_name][0] for p in pred]
-    df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
+    # REVIEW: even with v0.2.4, not getting all predictions
+    # perhaps requires main branch as of 2022-03-30
+    # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
+    # pred = list(ax_client.get_model_predictions().values())
+    # pred = pred[n_train - 1 :]
+    # df["vol_frac_pred"] = [p[target_name][0] for p in pred]
+    # df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
 
     Path("results").mkdir(exist_ok=True, parents=True)
     result_path = join(dirname(savepath), "results.csv")

@@ -1,5 +1,6 @@
-from subprocess import call
+from os import getcwd
+from subprocess import run
 from os.path import join
 
-fpath = join("boppf", "utils", "particle_packing_sim.exe")
-call(fpath)
+fpath = join("..", "..", "boppf", "utils", "particle_packing_sim.exe")
+run(fpath)
