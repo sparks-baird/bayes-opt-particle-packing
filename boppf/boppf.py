@@ -1,8 +1,11 @@
 """Perform Bayesian optimization on the particle packing simulation parameters."""
+from os import getcwd
 from os.path import join
 from pathlib import Path
 from boppf.utils.ax import optimize_ppf
-from multiprocessing import cpu_count
+from psutil import cpu_count
+import ray
+import boppf
 
 
 class BOPPF:
@@ -14,7 +17,8 @@ class BOPPF:
         n_bayes=1000,
         save_dir="results",
         savename="experiment.json",
-        max_parallel=cpu_count(),  # hyperthreading
+        max_parallel=max(1, cpu_count(logical=False)),  # hyperthreading or not
+        debug=False,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -29,8 +33,12 @@ class BOPPF:
         Path(save_dir).mkdir(exist_ok=True, parents=True)
         self.savepath = join(save_dir, savename)
 
-    def optimize(self, X_train, y_train, return_ax_client=False):
+        if debug:
+            ray.init(local_mode=True)
+        else:
+            ray.init()
 
+    def optimize(self, X_train, y_train, return_ax_client=False):
         if self.dummy:
             X_train = X_train.head(10)
             y_train = y_train.head(10)
@@ -50,3 +58,8 @@ class BOPPF:
             return best_parameters, mean, covariance, self.ax_client
         else:
             return best_parameters, mean, covariance
+
+
+# %% Code Graveyard
+# runtime_env = {"working_dir": getcwd(), "py_modules": [join("boppf", "utils")]}
+# ray.init(local_mode=True, runtime_env=runtime_env)
