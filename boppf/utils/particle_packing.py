@@ -73,7 +73,7 @@ def particle_packing_simulation(
     print("vol_frac: ", vol_frac)
 
     eng.quit()
-    
+
     os.chdir(cwd)
 
     return vol_frac
