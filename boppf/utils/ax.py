@@ -34,7 +34,7 @@ def optimize_ppf(
     n_bayes=100,
     savepath=join("results", "experiment.json"),
     max_parallel=cpu_count(logical=False),
-    torch_device = torch.device("cuda"),
+    torch_device=torch.device("cuda"),
 ):
     n_train = X_train.shape[0]
 
@@ -122,7 +122,7 @@ def optimize_ppf(
     algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=max_parallel)
     tune.run(
         evaluate,
-        fail_fast=True,
+        fail_fast=False,
         num_samples=n_trials,
         search_alg=algo,
         verbose=2,  # Set this level to 1 to see status updates and to 2 to also see trial results.
