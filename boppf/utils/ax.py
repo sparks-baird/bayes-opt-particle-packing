@@ -20,6 +20,8 @@ from boppf.utils.data import mean_names, std_names, frac_names, target_name
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
 
+from botorch.acquisition import qExpectedImprovement
+
 logger = logging.getLogger(tune.__name__)
 logger.setLevel(
     level=logging.CRITICAL
@@ -35,6 +37,7 @@ def optimize_ppf(
     savepath=join("results", "experiment.json"),
     max_parallel=cpu_count(logical=False),
     torch_device=torch.device("cuda"),
+    use_saas=False,
 ):
     n_train = X_train.shape[0]
 
@@ -56,6 +59,10 @@ def optimize_ppf(
 
     comp_constraint = [f"{subfrac_names[0]} + {subfrac_names[1]} <= 1.0"]
 
+    if use_saas:
+        bayes_model = Models.FULLYBAYESIAN
+    else:
+        bayes_model = Models.BOTORCH_MODULAR
     # TODO: deal with inconsistency of Sobol sampling and compositional constraint
     gs = GenerationStrategy(
         steps=[
@@ -72,11 +79,18 @@ def optimize_ppf(
             # 2. Bayesian optimization step (requires data obtained from previous phase and learns
             # from all data available at the time of each new candidate generation call)
             GenerationStep(
-                model=Models.GPEI,
+                model=bayes_model,
                 num_trials=-1,  # No limitation on how many trials should be produced from this step
-                model_kwargs={"fit_out_of_design": True},
+                model_kwargs={
+                    "fit_out_of_design": True,
+                    "torch_device": torch_device,
+                    "botorch_acqf_class": qExpectedImprovement,
+                    "acquisition_options": {
+                        "optimizer_options": {"options": {"batch_limit": 1}}
+                    },
+                },
+                # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
                 max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
-                model_gen_kwargs={"torch_device": torch_device},
                 # More on parallelism vs. required samples in BayesOpt:
                 # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
             ),
@@ -179,4 +193,8 @@ def optimize_ppf(
 # par_df[frac_names[-1]] = 1 - par_df[subfrac_names].sum(axis=1)
 # df = trials_as_df.drop(columns=["Arm Parameterizations"])
 # df = concat((df, par_df), axis=1)
+
+# "acquisition_options": {
+#     "optimizer_options": {"num_restarts": 10, "raw_samples": 256}
+# },
 
