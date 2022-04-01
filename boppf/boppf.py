@@ -23,6 +23,7 @@ class BOPPF:
         include_logical_cores=False,
         debug=False,
         torch_device=torch.device("cuda"),
+        use_saas=False,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -36,6 +37,7 @@ class BOPPF:
 
         self.max_parallel = max_parallel
         self.torch_device = torch_device
+        self.use_saas = use_saas
 
         if dummy:
             save_dir = join(save_dir, "dummy")
@@ -49,10 +51,6 @@ class BOPPF:
             ray.init()
 
     def optimize(self, X_train, y_train, return_ax_client=False):
-        if self.dummy:
-            X_train = X_train.head(10)
-            y_train = y_train.head(10)
-
         # %% optimization
         self.ax_client, best_parameters, mean, covariance = optimize_ppf(
             X_train,
@@ -63,6 +61,7 @@ class BOPPF:
             savepath=self.savepath,
             max_parallel=self.max_parallel,
             torch_device=self.torch_device,
+            use_saas=self.use_saas,
         )
 
         if return_ax_client:
