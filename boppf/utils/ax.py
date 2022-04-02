@@ -84,6 +84,7 @@ def optimize_ppf(
                 model_kwargs={
                     "fit_out_of_design": True,
                     "torch_device": torch_device,
+                    "torch_dtype": torch.double,
                     "botorch_acqf_class": qExpectedImprovement,
                     "acquisition_options": {
                         "optimizer_options": {"options": {"batch_limit": 1}}
@@ -139,7 +140,7 @@ def optimize_ppf(
         fail_fast=False,
         num_samples=n_trials,
         search_alg=algo,
-        verbose=2,  # Set this level to 1 to see status updates and to 2 to also see trial results.
+        verbose=3,  # Set this level to 1 to see status updates and to 2 to also see trial results.
         local_dir=getcwd(),
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
