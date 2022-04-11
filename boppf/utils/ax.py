@@ -38,19 +38,11 @@ def optimize_ppf(
     max_parallel=cpu_count(logical=False),
     torch_device=torch.device("cuda"),
     use_saas=False,
+    seed=10,
 ):
     n_train = X_train.shape[0]
 
-    type = "range"
-    mean_bnd = [1.0, 1000.0]
-    std_bnd = [0.01, 5000.0]
-    frac_bnd = [0.0, 1.0]
-    mean_pars = [{"name": nm, "type": type, "bounds": mean_bnd} for nm in mean_names]
-    std_pars = [{"name": nm, "type": type, "bounds": std_bnd} for nm in std_names]
-
-    subfrac_names = frac_names[0:2]
-    frac_pars = [{"name": nm, "type": type, "bounds": frac_bnd} for nm in frac_names]
-    parameters = mean_pars + std_pars + frac_pars[:-1]
+    subfrac_names, parameters = get_parameters(drop_last=True)
 
     if n_sobol is None:
         n_sobol = 2 * len(parameters)
@@ -73,7 +65,9 @@ def optimize_ppf(
                 num_trials=n_sobol,
                 # min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
                 max_parallelism=max_parallel,  # Max parallelism for this step
-                model_kwargs={"seed": 999},  # Any kwargs you want passed into the model
+                model_kwargs={
+                    "seed": seed
+                },  # Any kwargs you want passed into the model
                 model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
             ),
             # 2. Bayesian optimization step (requires data obtained from previous phase and learns
@@ -182,6 +176,24 @@ def optimize_ppf(
     df.to_csv(result_path)
 
     return ax_client, best_parameters, mean, covariance
+
+
+def get_parameters(drop_last=True):
+    type = "range"
+    mean_bnd = [1.0, 1000.0]
+    std_bnd = [0.01, 5000.0]
+    frac_bnd = [0.0, 1.0]
+    mean_pars = [{"name": nm, "type": type, "bounds": mean_bnd} for nm in mean_names]
+    std_pars = [{"name": nm, "type": type, "bounds": std_bnd} for nm in std_names]
+
+    subfrac_names = frac_names[0:2]
+    frac_pars = [{"name": nm, "type": type, "bounds": frac_bnd} for nm in frac_names]
+
+    if drop_last:
+        parameters = mean_pars + std_pars + frac_pars[:-1]
+    else:
+        parameters = mean_pars + std_pars + frac_pars
+    return subfrac_names, parameters
 
 
 # %% code graveyard
