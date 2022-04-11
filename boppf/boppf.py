@@ -24,6 +24,7 @@ class BOPPF:
         debug=False,
         torch_device=torch.device("cuda"),
         use_saas=False,
+        seed=10,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -50,6 +51,8 @@ class BOPPF:
         else:
             ray.init()
 
+        self.seed = seed
+
     def optimize(self, X_train, y_train, return_ax_client=False):
         # %% optimization
         self.ax_client, best_parameters, mean, covariance = optimize_ppf(
@@ -62,6 +65,7 @@ class BOPPF:
             max_parallel=self.max_parallel,
             torch_device=self.torch_device,
             use_saas=self.use_saas,
+            seed=self.seed,
         )
 
         if return_ax_client:
