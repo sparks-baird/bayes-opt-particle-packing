@@ -15,6 +15,8 @@ dummy = False
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
 
+random_seed = 11
+
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
@@ -29,10 +31,12 @@ else:
     n_sobol = 16
     n_bayes = 100 - 16
     particles = int(1.5e6)
+    n_train_keep = 0
+    X_train = X_train.head(n_train_keep)
+    y_train = y_train.head(n_train_keep)
 
-# save one CPU for my poor machine
-# max_parallel = max(1, cpu_count(logical=False) - 1)
-max_parallel = 5
+# save one CPU for my poor, overworked machine
+max_parallel = max(1, cpu_count(logical=False) - 1)
 
 boppf = BOPPF(
     dummy=dummy,
