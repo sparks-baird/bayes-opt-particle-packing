@@ -13,7 +13,7 @@ X_train, y_train = load_data(fname=fname, folder=data_dir)
 dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
-use_saas = False
+use_saas = True
 
 random_seed = 11
 
