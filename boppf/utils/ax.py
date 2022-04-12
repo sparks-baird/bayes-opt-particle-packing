@@ -180,8 +180,8 @@ def optimize_ppf(
 
 def get_parameters(drop_last=True):
     type = "range"
-    mean_bnd = [1.0, 1000.0]
-    std_bnd = [0.01, 5000.0]
+    mean_bnd = [10.0, 500.0]
+    std_bnd = [1.0, 1000.0]
     frac_bnd = [0.0, 1.0]
     mean_pars = [{"name": nm, "type": type, "bounds": mean_bnd} for nm in mean_names]
     std_pars = [{"name": nm, "type": type, "bounds": std_bnd} for nm in std_names]
