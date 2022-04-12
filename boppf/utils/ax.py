@@ -53,8 +53,15 @@ def optimize_ppf(
 
     if use_saas:
         bayes_model = Models.FULLYBAYESIAN
+        kwargs = {}
     else:
         bayes_model = Models.BOTORCH_MODULAR
+        kwargs = {
+            "botorch_acqf_class": qExpectedImprovement,
+            "acquisition_options": {
+                "optimizer_options": {"options": {"batch_limit": 1}}
+            },
+        }
     # TODO: deal with inconsistency of Sobol sampling and compositional constraint
     gs = GenerationStrategy(
         steps=[
@@ -79,10 +86,7 @@ def optimize_ppf(
                     "fit_out_of_design": True,
                     "torch_device": torch_device,
                     "torch_dtype": torch.double,
-                    "botorch_acqf_class": qExpectedImprovement,
-                    "acquisition_options": {
-                        "optimizer_options": {"options": {"batch_limit": 1}}
-                    },
+                    **kwargs,
                 },
                 # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
                 max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol

@@ -4,7 +4,6 @@ import torch
 from boppf.boppf import BOPPF
 from boppf.utils.data import load_data
 from time import time
-import gpytorch
 
 data_dir = "data"
 fname = "packing-fraction.csv"
@@ -13,7 +12,7 @@ X_train, y_train = load_data(fname=fname, folder=data_dir)
 dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
-use_saas = False
+use_saas = True
 
 random_seed = 11
 
@@ -22,21 +21,21 @@ if dummy:
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
     torch.cuda.empty_cache()
     n_sobol = 1
-    n_bayes = 1
+    n_bayes = 16
     particles = 1000
     n_train_keep = 100
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
 else:
-    n_sobol = 16
-    n_bayes = 100 - 16
+    n_sobol = 20
+    n_bayes = 200 - n_sobol
     particles = int(1.5e6)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
 
 # save one CPU for my poor, overworked machine
-max_parallel = max(1, cpu_count(logical=False) - 1)
+max_parallel = max(1, cpu_count(logical=True) - 2)
 
 boppf = BOPPF(
     dummy=dummy,
