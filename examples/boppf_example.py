@@ -27,8 +27,8 @@ if dummy:
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
 else:
-    n_sobol = 20
-    n_bayes = 200 - n_sobol
+    n_sobol = 10
+    n_bayes = 100 - n_sobol
     particles = int(1.5e6)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
