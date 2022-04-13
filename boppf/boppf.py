@@ -1,6 +1,5 @@
 """Perform Bayesian optimization on the particle packing simulation parameters."""
-from os import getcwd
-from os.path import join
+from os import getcwd, path
 from pathlib import Path
 
 import torch
@@ -19,8 +18,8 @@ class BOPPF:
         n_bayes=1000,
         save_dir="results",
         savename="experiment.json",
-        max_parallel="cpu_count",  # hyperthreading or not
-        include_logical_cores=False,
+        max_parallel="cpu_count",
+        include_logical_cores=False,  # hyperthreading or not
         debug=False,
         torch_device=torch.device("cuda"),
         use_saas=False,
@@ -41,10 +40,21 @@ class BOPPF:
         self.use_saas = use_saas
 
         if dummy:
-            save_dir = join(save_dir, "dummy")
+            save_dir = path.join(save_dir, "dummy")
+
+        if use_saas:
+            save_dir = path.join(save_dir, "saas")
+
+        save_dir = path.join(
+            save_dir,
+            f"particles={particles}",
+            f"max_parallel={max_parallel}",
+            f"n_sobol={n_sobol},n_bayes={n_bayes},seed={seed}",
+        )
 
         Path(save_dir).mkdir(exist_ok=True, parents=True)
-        self.savepath = join(save_dir, savename)
+        self.save_dir = save_dir
+        self.savename = savename
 
         if debug:
             ray.init(local_mode=True)
@@ -61,7 +71,7 @@ class BOPPF:
             particles=self.particles,
             n_sobol=self.n_sobol,
             n_bayes=self.n_bayes,
-            savepath=self.savepath,
+            save_dir=self.save_dir,
             max_parallel=self.max_parallel,
             torch_device=self.torch_device,
             use_saas=self.use_saas,

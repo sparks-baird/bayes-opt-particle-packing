@@ -1,5 +1,5 @@
 import logging
-from os import getcwd
+from os import getcwd, path
 from pathlib import Path
 import torch
 from tqdm import tqdm
@@ -34,7 +34,7 @@ def optimize_ppf(
     particles=int(1.5e6),
     n_sobol=None,
     n_bayes=100,
-    savepath=join("results", "experiment.json"),
+    save_dir="results",
     max_parallel=cpu_count(logical=False),
     torch_device=torch.device("cuda"),
     use_saas=False,
@@ -148,7 +148,7 @@ def optimize_ppf(
     mean, covariance = values
 
     # For custom filepath, pass `filepath` argument.
-    ax_client.save_to_json_file(filepath=savepath)
+    ax_client.save_to_json_file(filepath=path.join(save_dir, "experiment.json"))
     # restored_ax_client = AxClient.load_from_json_file()  # For custom filepath, pass
     # `filepath` argument.
 
@@ -176,7 +176,7 @@ def optimize_ppf(
     # df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
 
     Path("results").mkdir(exist_ok=True, parents=True)
-    result_path = join(dirname(savepath), "results.csv")
+    result_path = path.join(save_dir, "results.csv")
     df.to_csv(result_path)
 
     return ax_client, best_parameters, mean, covariance
