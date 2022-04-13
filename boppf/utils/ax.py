@@ -54,7 +54,7 @@ def optimize_ppf(
     if use_saas:
         bayes_model = Models.FULLYBAYESIAN
         kwargs = {}
-    else:
+    elif n_train + n_sobol + n_bayes > 2000:
         bayes_model = Models.BOTORCH_MODULAR
         kwargs = {
             "botorch_acqf_class": qExpectedImprovement,
@@ -62,6 +62,9 @@ def optimize_ppf(
                 "optimizer_options": {"options": {"batch_limit": 1}}
             },
         }
+    else:
+        bayes_model = Models.GPEI
+        kwargs = {}
     # TODO: deal with inconsistency of Sobol sampling and compositional constraint
     gs = GenerationStrategy(
         steps=[
