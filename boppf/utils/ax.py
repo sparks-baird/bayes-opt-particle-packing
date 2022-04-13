@@ -70,7 +70,7 @@ def optimize_ppf(
             GenerationStep(
                 model=Models.SOBOL,
                 num_trials=n_sobol,
-                # min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
+                min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
                 max_parallelism=max_parallel,  # Max parallelism for this step
                 model_kwargs={
                     "seed": seed
@@ -162,7 +162,11 @@ def optimize_ppf(
     trials = trials[n_train:]
 
     def get_runtime(trial):
-        dt = (trial.time_completed - trial.time_run_started).total_seconds()
+        if trial.time_completed is not None:
+            dt = (trial.time_completed - trial.time_run_started).total_seconds()
+        else:
+            dt = None
+
         return dt
 
     df["runtime"] = [get_runtime(trial) for trial in trials]
