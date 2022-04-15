@@ -57,7 +57,7 @@ def optimize_ppf(
     if use_saas:
         bayes_model = Models.FULLYBAYESIAN
         kwargs = {}
-    else:
+    elif n_train + n_sobol + n_bayes > 2000:
         bayes_model = Models.BOTORCH_MODULAR
         kwargs = {
             "botorch_acqf_class": qExpectedImprovement,
@@ -65,39 +65,43 @@ def optimize_ppf(
                 "optimizer_options": {"options": {"batch_limit": 1}}
             },
         }
+    else:
+        bayes_model = Models.GPEI
+        kwargs = {}
     # TODO: deal with inconsistency of Sobol sampling and compositional constraint
-    gs = GenerationStrategy(
-        steps=[
-            # 1. Initialization step (does not require pre-existing data and is well-suited for
-            # initial sampling of the search space)
-            GenerationStep(
-                model=Models.SOBOL,
-                num_trials=n_sobol,
-                # min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
-                max_parallelism=max_parallel,  # Max parallelism for this step
-                model_kwargs={
-                    "seed": seed
-                },  # Any kwargs you want passed into the model
-                model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
-            ),
-            # 2. Bayesian optimization step (requires data obtained from previous phase and learns
-            # from all data available at the time of each new candidate generation call)
-            GenerationStep(
-                model=bayes_model,
-                num_trials=-1,  # No limitation on how many trials should be produced from this step
-                model_kwargs={
-                    "fit_out_of_design": True,
-                    "torch_device": torch_device,
-                    "torch_dtype": torch.double,
-                    **kwargs,
-                },
-                # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
-                max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
-                # More on parallelism vs. required samples in BayesOpt:
-                # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
-            ),
-        ]
+    sobol_step = GenerationStep(
+        model=Models.SOBOL,
+        num_trials=n_sobol,
+        min_trials_observed=n_sobol,  # How many trials need to be completed to move to next model
+        max_parallelism=max_parallel,  # Max parallelism for this step
+        model_kwargs={"seed": seed},  # Any kwargs you want passed into the model
+        model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
     )
+    bayes_step = GenerationStep(
+        model=bayes_model,
+        num_trials=-1,  # No limitation on how many trials should be produced from this step
+        model_kwargs={
+            "fit_out_of_design": True,
+            "torch_device": torch_device,
+            "torch_dtype": torch.double,
+            **kwargs,
+        },
+        # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
+        max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
+        # More on parallelism vs. required samples in BayesOpt:
+        # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
+    )
+    if n_sobol == 0:
+        steps = [bayes_step]
+    elif n_bayes == 0:
+        steps = [sobol_step]
+    else:
+        steps = [sobol_step, bayes_step]
+
+    if n_sobol == 0 and n_bayes == 0:
+        raise ValueError("n_sobol or n_bayes should be a positive integer.")
+
+    gs = GenerationStrategy(steps=steps)
 
     ax_client = AxClient(
         generation_strategy=gs,
@@ -165,7 +169,11 @@ def optimize_ppf(
     trials = trials[n_train:]
 
     def get_runtime(trial):
-        dt = (trial.time_completed - trial.time_run_started).total_seconds()
+        if trial.time_completed is not None:
+            dt = (trial.time_completed - trial.time_run_started).total_seconds()
+        else:
+            dt = None
+
         return dt
 
     df["runtime"] = [get_runtime(trial) for trial in trials]

@@ -12,7 +12,7 @@ X_train, y_train = load_data(fname=fname, folder=data_dir)
 dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
-use_saas = True
+use_saas = False
 
 random_seed = 11
 
@@ -29,13 +29,13 @@ if dummy:
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
-    particles = int(1.5e6)
+    particles = int(1e5)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
 
 # save one CPU for my poor, overworked machine
-max_parallel = max(1, cpu_count(logical=True) - 2)
+max_parallel = max(1, cpu_count(logical=False) - 1)
 
 boppf = BOPPF(
     dummy=dummy,
