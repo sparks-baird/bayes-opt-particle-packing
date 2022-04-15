@@ -1,4 +1,5 @@
 """Perform a single particle packing simulation."""
+from os import chdir, getcwd
 from boppf.utils.particle_packing import particle_packing_simulation
 
 dummy = True
@@ -13,8 +14,11 @@ means = [120.0, 120.0, 120.0]
 stds = [10.0, 10.0, 10.0]
 fractions = [0.33, 0.33]
 
+cwd = getcwd()
+chdir("boppf/utils")
 vol_frac = particle_packing_simulation(
     uid=uid, particles=particles, means=means, stds=stds, fractions=fractions
 )
+chdir(cwd)
 
 1 + 1
