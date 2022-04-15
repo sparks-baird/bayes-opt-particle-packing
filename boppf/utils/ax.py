@@ -39,10 +39,13 @@ def optimize_ppf(
     torch_device=torch.device("cuda"),
     use_saas=False,
     seed=10,
+    
 ):
     n_train = X_train.shape[0]
 
     subfrac_names, parameters = get_parameters(drop_last=True)
+    
+    # TODO: make compatible with additional irreducible constraints
 
     if n_sobol is None:
         n_sobol = 2 * len(parameters)
@@ -183,6 +186,7 @@ def optimize_ppf(
 
 
 def get_parameters(drop_last=True):
+    # TODO: add kwargs for the other two irreducible search spaces
     type = "range"
     mean_bnd = [10.0, 500.0]
     std_bnd = [1.0, 1000.0]
