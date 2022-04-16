@@ -27,7 +27,7 @@ if dummy:
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     max_parallel = 2
-    debug = True
+    debug = False
     random_seeds = range(10, 12)
 else:
     n_sobol = 10
