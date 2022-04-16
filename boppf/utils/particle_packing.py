@@ -64,7 +64,7 @@ def write_input_file(uid, particles, means, stds, fractions):
     fractions = np.append(fractions, 1 - np.sum(fractions))
     fractions[fractions < 1e-6] = 0.0
     fractions = normalize(fractions.reshape(1, -1))
-    fractions = double(list(fractions))
+    fractions = double([fractions.tolist()])
 
     util_dir = join("boppf", "utils")
     data_dir = join("boppf", "data")
