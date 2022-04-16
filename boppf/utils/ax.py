@@ -1,3 +1,6 @@
+from code import compile_command
+from copy import deepcopy
+from itertools import permutations
 import logging
 from os import getcwd, path
 from pathlib import Path
@@ -15,10 +18,11 @@ from ray import tune
 from ray.tune import report
 from ray.tune.suggest.ax import AxSearch
 
-from boppf.utils.data import mean_names, std_names, frac_names, target_name
+from boppf.utils.data import SPLIT, get_parameters, frac_names, target_name
 
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
+from ax.service.utils.instantiation import ObjectiveProperties
 
 from botorch.acquisition import qExpectedImprovement
 
@@ -39,12 +43,26 @@ def optimize_ppf(
     torch_device=torch.device("cuda"),
     use_saas=False,
     seed=10,
-    
+    data_augmentation=False,
+    remove_composition_degeneracy=True,
+    remove_scaling_degeneracy=False,
+    use_order_constraint=False,
 ):
     n_train = X_train.shape[0]
 
-    subfrac_names, parameters = get_parameters(drop_last=True)
-    
+    (
+        subfrac_names,
+        parameters,
+        generous_parameters,
+        mean_names,
+        std_names,
+        orig_mean_names,
+        orig_std_names,
+    ) = get_parameters(
+        remove_composition_degeneracy=remove_composition_degeneracy,
+        remove_scaling_degeneracy=remove_scaling_degeneracy,
+    )
+
     # TODO: make compatible with additional irreducible constraints
 
     if n_sobol is None:
@@ -52,7 +70,24 @@ def optimize_ppf(
 
     n_trials = n_sobol + n_bayes
 
-    comp_constraint = [f"{subfrac_names[0]} + {subfrac_names[1]} <= 1.0"]
+    if remove_composition_degeneracy:
+        comp_constraints = [f"{subfrac_names[0]} + {subfrac_names[1]} <= 1.0"]
+    else:
+        comp_constraints = []
+
+    if use_order_constraint:
+        n = len(mean_names)
+        order_constraints = [
+            f"{mean_names[i]} <= {mean_names[j]}"
+            for i, j in zip(range(n - 1), range(1, n))
+        ]
+    else:
+        order_constraints = []
+
+    parameter_constraints = comp_constraints + order_constraints
+
+    if parameter_constraints == []:
+        parameter_constraints = None
 
     if use_saas:
         bayes_model = Models.FULLYBAYESIAN
@@ -112,21 +147,67 @@ def optimize_ppf(
     ax_client.create_experiment(
         name="particle_packing",
         parameters=parameters,
-        objective_name=target_name,
-        minimize=False,  # Optional, defaults to False.
-        parameter_constraints=comp_constraint,  # compositional constraint
+        objectives={target_name: ObjectiveProperties(minimize=False)},
+        parameter_constraints=parameter_constraints,
+        immutable_search_space_and_opt_config=False,
     )
 
+    # search_space = deepcopy(ax_client.experiment.search_space)
+
+    if remove_scaling_degeneracy and data_augmentation:
+        generous_search = ax_client.make_search_space(
+            parameters=generous_parameters, parameter_constraints=parameter_constraints
+        )
+        ax_client.experiment.search_space = generous_search
+
+    k = 0
     for i in tqdm(range(n_train)):
-        ax_client.attach_trial(X_train.iloc[i].to_dict())
-        ax_client.complete_trial(trial_index=i, raw_data=y_train[i])
+        x = X_train.iloc[i]
+        y = y_train[i]
+        combs = get_combs(data_augmentation, std_names)
+
+        if remove_composition_degeneracy:
+            last_component = frac_names[-1]
+            x[last_component] = 1 - x[subfrac_names].sum()
+
+        for comb in combs:
+            x = reparameterize(
+                remove_composition_degeneracy,
+                remove_scaling_degeneracy,
+                mean_names,
+                std_names,
+                orig_mean_names,
+                orig_std_names,
+                x,
+                last_component,
+                comb,
+            )
+
+            ax_client.attach_trial(x.to_dict())
+            ax_client.complete_trial(trial_index=k, raw_data=y)
+        k = k + 1
 
     def evaluate(parameters):
-        means = np.array([parameters.get(name) for name in mean_names])
-        stds = np.array([parameters.get(name) for name in std_names])
-        fractions = np.array([parameters.get(name) for name in subfrac_names])
-        uid = str(uuid4())[0:8]
+        # data augmentation non-functional
+        # https://discuss.ray.io/t/how-to-perform-data-augmentation-with-raytune-and-axsearch/5829
+
+        if not remove_composition_degeneracy:
+            last_component = frac_names[-1]
+            parameters.pop(last_component)
+
+        if remove_scaling_degeneracy:
+            names = mean_names + std_names
+            for name in names:
+                orig_name = name.replace("_div_mu3", "")
+                parameters[orig_name] = parameters[name] * 10.0  # NOTE: hardcoded
+                parameters["mu3"] = 10.0
+
+        means = np.array([float(parameters.get(name)) for name in orig_mean_names])
+        stds = np.array([float(parameters.get(name)) for name in orig_std_names])
+        fractions = np.array([float(parameters.get(name)) for name in frac_names[:-1]])
+        uid = str(uuid4())[0:8]  # 0:8 to shorten the long hash ID, 8 is arbitrary
         vol_frac = particle_packing_simulation(uid, particles, means, stds, fractions)
+
         d = {target_name: vol_frac}  # can't specify SEM perhaps?
         report(**d)
 
@@ -193,23 +274,52 @@ def optimize_ppf(
     return ax_client, best_parameters, mean, covariance
 
 
-def get_parameters(drop_last=True):
-    # TODO: add kwargs for the other two irreducible search spaces
-    type = "range"
-    mean_bnd = [10.0, 500.0]
-    std_bnd = [1.0, 1000.0]
-    frac_bnd = [0.0, 1.0]
-    mean_pars = [{"name": nm, "type": type, "bounds": mean_bnd} for nm in mean_names]
-    std_pars = [{"name": nm, "type": type, "bounds": std_bnd} for nm in std_names]
+def reparameterize(
+    remove_composition_degeneracy,
+    remove_scaling_degeneracy,
+    mean_names,
+    std_names,
+    orig_mean_names,
+    orig_std_names,
+    x,
+    last_component,
+    comb,
+):
+    ordered_mean_names = [orig_mean_names[c] for c in comb]
+    ordered_std_names = [orig_std_names[c] for c in comb]
+    ordered_frac_names = [frac_names[c] for c in comb]
+    std_mapper = {v: k for v, k in zip(orig_std_names, ordered_std_names)}
+    mean_mapper = {v: k for v, k in zip(orig_mean_names, ordered_mean_names)}
+    frac_mapper = {v: k for v, k in zip(frac_names, ordered_frac_names)}
+    mapper = {**mean_mapper, **std_mapper, **frac_mapper}
 
-    subfrac_names = frac_names[0:2]
-    frac_pars = [{"name": nm, "type": type, "bounds": frac_bnd} for nm in frac_names]
+    # https://stackoverflow.com/questions/57446160/swap-or-exchange-column-names-in-pandas-dataframe-with-multiple-columns
+    x.index = [mapper.get(x, x) for x in x.to_frame().index]
+    if remove_scaling_degeneracy:
+        last_mean = mean_names[-1]
+        scl = x[last_mean] / 10.0  # NOTE: hardcoded
+        x = x / scl
 
-    if drop_last:
-        parameters = mean_pars + std_pars + frac_pars[:-1]
+        for name in mean_names + std_names:
+            n1, n2 = name.split(SPLIT)
+            x[name] = x[n1] / x[n2]
+            # remove the original names
+        [x.pop(n) for n in orig_mean_names + orig_std_names]
+
+    if remove_composition_degeneracy:
+        x.pop(last_component)
+    return x
+
+
+def get_combs(data_augmentation, std_names):
+    n_components = len(std_names)
+    vals = list(range(n_components))
+
+    if data_augmentation:
+        combs = list(permutations(vals, n_components))
     else:
-        parameters = mean_pars + std_pars + frac_pars
-    return subfrac_names, parameters
+        combs = [vals]
+    return combs
 
 
 # %% code graveyard
@@ -226,4 +336,11 @@ def get_parameters(drop_last=True):
 # "acquisition_options": {
 #     "optimizer_options": {"num_restarts": 10, "raw_samples": 256}
 # },
+
+# x.rename(mean_mapper)
+# x.reset_index()["index"].map(mean_mapper)
+# x.to_frame().rename(
+#     index={**mean_mapper, **{v: k for k, v in mean_mapper.items()}},
+#     inplace=True,
+# )
 
