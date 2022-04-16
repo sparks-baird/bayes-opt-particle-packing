@@ -243,7 +243,8 @@ def optimize_ppf(
     df = ax_client.get_trials_data_frame().tail(n_trials)
 
     # add `comp3` back in
-    df[frac_names[-1]] = 1 - df[subfrac_names].sum(axis=1)
+    if remove_composition_degeneracy:
+        df[frac_names[-1]] = 1 - df[subfrac_names].sum(axis=1)
 
     # runtime
     trials = list(ax_client.generation_strategy.experiment.trials.values())
