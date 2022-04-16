@@ -24,6 +24,10 @@ class BOPPF:
         torch_device=torch.device("cuda"),
         use_saas=False,
         seed=10,
+        data_augmentation=False,
+        remove_composition_degeneracy=True,
+        remove_scaling_degeneracy=False,
+        use_order_constraint=False,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -50,18 +54,25 @@ class BOPPF:
             f"particles={particles}",
             f"max_parallel={max_parallel}",
             f"n_sobol={n_sobol},n_bayes={n_bayes},seed={seed}",
+            f"augment={data_augmentation},drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
         )
 
         Path(save_dir).mkdir(exist_ok=True, parents=True)
         self.save_dir = save_dir
         self.savename = savename
 
+        ray.shutdown()
         if debug:
             ray.init(local_mode=True)
         else:
             ray.init()
 
         self.seed = seed
+
+        self.data_augmentation = data_augmentation
+        self.remove_composition_degeneracy = remove_composition_degeneracy
+        self.remove_scaling_degeneracy = remove_scaling_degeneracy
+        self.use_order_constraint = use_order_constraint
 
     def optimize(self, X_train, y_train, return_ax_client=False):
         # %% optimization
@@ -76,6 +87,10 @@ class BOPPF:
             torch_device=self.torch_device,
             use_saas=self.use_saas,
             seed=self.seed,
+            data_augmentation=self.data_augmentation,
+            remove_composition_degeneracy=self.remove_composition_degeneracy,
+            remove_scaling_degeneracy=self.remove_scaling_degeneracy,
+            use_order_constraint=self.use_order_constraint,
         )
 
         if return_ax_client:
