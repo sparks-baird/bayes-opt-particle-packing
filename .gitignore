@@ -139,3 +139,4 @@ dmypy.json
 **/evaluate_*/*
 results/dummy/experiment.json
 results/dummy/results.csv
+boppf/data/e3abf1f3.zip
