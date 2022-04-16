@@ -7,7 +7,7 @@ from boppf.utils.data import frac_names
 import plotly.express as px
 from plotly import offline
 
-subfrac_names, parameters = get_parameters(drop_last=False)
+subfrac_names, parameters = get_parameters(remove_composition_degeneracy=False)
 
 # quick way of making a search_space
 use_constraint = True
