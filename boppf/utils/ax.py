@@ -1,5 +1,3 @@
-from code import compile_command
-from copy import deepcopy
 from itertools import permutations
 import logging
 from os import getcwd, path
@@ -11,7 +9,6 @@ from psutil import cpu_count
 from boppf.utils.particle_packing import particle_packing_simulation
 from ax.service.ax_client import AxClient
 import numpy as np
-from os.path import join, dirname
 from uuid import uuid4
 
 from ray import tune
@@ -235,10 +232,8 @@ def optimize_ppf(
 
     mean, covariance = values
 
-    # For custom filepath, pass `filepath` argument.
     ax_client.save_to_json_file(filepath=path.join(save_dir, "experiment.json"))
-    # restored_ax_client = AxClient.load_from_json_file()  # For custom filepath, pass
-    # `filepath` argument.
+    # restored_ax_client = AxClient.load_from_json_file(filepath=...)
 
     df = ax_client.get_trials_data_frame().tail(n_trials)
 
