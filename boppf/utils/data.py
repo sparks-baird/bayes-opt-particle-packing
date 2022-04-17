@@ -1,5 +1,5 @@
 from copy import copy
-from itertools import permutations
+from itertools import permutations, product
 import pandas as pd
 import numpy as np
 from os.path import join
@@ -16,6 +16,22 @@ target_name = "vol_frac"
 mapper = {**mean_mapper, **std_mapper, **frac_mapper, "Packing_Fraction": target_name}
 
 SPLIT = "_div_"
+
+SEEDS = list(range(10, 16))
+DUMMY_SEEDS = SEEDS[0:2]
+
+combs = list(product([True, False], repeat=3))
+
+keys = [
+    "remove_scaling_degeneracy",
+    "remove_composition_degeneracy",
+    "use_order_constraint",
+]
+
+COMBS_KWARGS = []
+for comb in combs:
+    kwargs = {k: v for k, v in zip(keys, comb)}
+    COMBS_KWARGS.append(kwargs)
 
 
 def load_data(fname="packing-fraction.csv", folder="data"):
