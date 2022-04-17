@@ -4,7 +4,7 @@ from pprint import pprint
 from psutil import cpu_count
 import torch
 from boppf.boppf import BOPPF
-from boppf.utils.data import load_data
+from boppf.utils.data import DUMMY_SEEDS, SEEDS, COMBS_KWARGS, load_data
 from time import time
 
 data_dir = "data"
@@ -21,14 +21,14 @@ if dummy:
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
     torch.cuda.empty_cache()
     n_sobol = 2
-    n_bayes = 5
+    n_bayes = 3
     particles = 1000
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     max_parallel = 2
     debug = False
-    random_seeds = range(10, 12)
+    random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
@@ -39,18 +39,9 @@ else:
     # save one CPU for my poor, overworked machine
     max_parallel = max(1, cpu_count(logical=False) - 1)
     debug = False
-    random_seeds = range(10, 21)
+    random_seeds = SEEDS
 
-combs = list(product([True, False], repeat=3))
-
-keys = [
-    "remove_scaling_degeneracy",
-    "remove_composition_degeneracy",
-    "use_order_constraint",
-]
-
-for comb in combs:
-    kwargs = {k: v for k, v in zip(keys, comb)}
+for kwargs in COMBS_KWARGS:
     for seed in random_seeds:
         pprint(kwargs)
         print("seed: ", seed)
