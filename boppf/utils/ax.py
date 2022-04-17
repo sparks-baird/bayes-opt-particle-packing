@@ -2,6 +2,8 @@ from itertools import permutations
 import logging
 from os import getcwd, path
 from pathlib import Path
+import pandas as pd
+import ray
 import torch
 from tqdm import tqdm
 
@@ -227,6 +229,9 @@ def optimize_ppf(
         local_dir=getcwd(),
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
+    
+    # to allow breakpoints after this, might cause a worker.py file to display
+    ray.shutdown()
 
     best_parameters, values = ax_client.get_best_parameters()
 
@@ -236,14 +241,15 @@ def optimize_ppf(
     # restored_ax_client = AxClient.load_from_json_file(filepath=...)
 
     df = ax_client.get_trials_data_frame().tail(n_trials)
+    trials = list(ax_client.experiment.trials.values())
+    # df = pd.DataFrame([trial.arm.parameters for trial in trials])
 
     # add `comp3` back in
     if remove_composition_degeneracy:
         df[frac_names[-1]] = 1 - df[subfrac_names].sum(axis=1)
 
     # runtime
-    trials = list(ax_client.generation_strategy.experiment.trials.values())
-    trials = trials[n_train:]
+    # trials = trials[n_train:]
 
     def get_runtime(trial):
         if trial.time_completed is not None:
@@ -255,13 +261,12 @@ def optimize_ppf(
 
     df["runtime"] = [get_runtime(trial) for trial in trials]
 
-    # REVIEW: even with v0.2.4, not getting all predictions
-    # perhaps requires main branch as of 2022-03-30
+    # REVIEW: v0.2.5 should support when released, for now use stable as of 2022-04-16
     # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
-    # pred = list(ax_client.get_model_predictions().values())
+    pred = list(ax_client.get_model_predictions().values())
     # pred = pred[n_train - 1 :]
-    # df["vol_frac_pred"] = [p[target_name][0] for p in pred]
-    # df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
+    df["vol_frac_pred"] = [p[target_name][0] for p in pred]
+    df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
 
     Path("results").mkdir(exist_ok=True, parents=True)
     result_path = path.join(save_dir, "results.csv")
