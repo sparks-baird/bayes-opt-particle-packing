@@ -75,9 +75,9 @@ def optimize_ppf(
         comp_constraints = []
 
     if use_order_constraint:
-        n = len(mean_names)
+        n = len(std_names)
         order_constraints = [
-            f"{mean_names[i]} <= {mean_names[j]}"
+            f"{std_names[i]} <= {std_names[j]}"
             for i, j in zip(range(n - 1), range(1, n))
         ]
     else:
@@ -153,7 +153,7 @@ def optimize_ppf(
 
     # search_space = deepcopy(ax_client.experiment.search_space)
 
-    if remove_scaling_degeneracy and data_augmentation:
+    if remove_scaling_degeneracy:  # and data_augmentation
         generous_search = ax_client.make_search_space(
             parameters=generous_parameters, parameter_constraints=parameter_constraints
         )
@@ -229,7 +229,7 @@ def optimize_ppf(
         local_dir=getcwd(),
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
-    
+
     # to allow breakpoints after this, might cause a worker.py file to display
     ray.shutdown()
 
