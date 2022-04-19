@@ -143,9 +143,14 @@ def optimize_ppf(
         verbose_logging=False,
     )
 
+    if remove_scaling_degeneracy:
+        final_params = generous_parameters
+    else:
+        final_params = parameters
+
     ax_client.create_experiment(
         name="particle_packing",
-        parameters=parameters,
+        parameters=final_params,
         objectives={target_name: ObjectiveProperties(minimize=False)},
         parameter_constraints=parameter_constraints,
         immutable_search_space_and_opt_config=False,
@@ -153,11 +158,11 @@ def optimize_ppf(
 
     # search_space = deepcopy(ax_client.experiment.search_space)
 
-    if remove_scaling_degeneracy:  # and data_augmentation
-        generous_search = ax_client.make_search_space(
-            parameters=generous_parameters, parameter_constraints=parameter_constraints
-        )
-        ax_client.experiment.search_space = generous_search
+    # if remove_scaling_degeneracy:  # and data_augmentation
+    #     generous_search = ax_client.make_search_space(
+    #         parameters=generous_parameters, parameter_constraints=parameter_constraints
+    #     )
+    #     ax_client.experiment.search_space = generous_search
 
     k = 0
     for i in tqdm(range(n_train)):
