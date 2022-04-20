@@ -17,7 +17,7 @@ mapper = {**mean_mapper, **std_mapper, **frac_mapper, "Packing_Fraction": target
 
 SPLIT = "_div_"
 
-SEEDS = list(range(10, 16))
+SEEDS = list(range(10, 14))
 DUMMY_SEEDS = SEEDS[0:2]
 
 combs = list(product([True, False], repeat=3))
