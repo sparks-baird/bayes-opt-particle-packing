@@ -167,7 +167,7 @@ for kwargs in COMBS_KWARGS:
                 param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
             )
         )
-        plot_and_save(fig_path, fig, show=False)
+        plot_and_save(fig_path, fig, mpl_kwargs=dict(width_inches=4.0), show=False)
 
         fig_path = path.join(fig_dir, f"interact_contour_2d_{seed}")
         fig = interact_contour_plotly(model=model, metric_name=metric)
