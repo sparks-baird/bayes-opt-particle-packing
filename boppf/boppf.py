@@ -28,6 +28,7 @@ class BOPPF:
         remove_composition_degeneracy=True,
         remove_scaling_degeneracy=False,
         use_order_constraint=False,
+        ray_verbosity=3,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -73,6 +74,7 @@ class BOPPF:
         self.remove_composition_degeneracy = remove_composition_degeneracy
         self.remove_scaling_degeneracy = remove_scaling_degeneracy
         self.use_order_constraint = use_order_constraint
+        self.ray_verbosity = ray_verbosity
 
     def optimize(self, X_train, y_train, return_ax_client=False):
         # %% optimization
@@ -91,6 +93,7 @@ class BOPPF:
             remove_composition_degeneracy=self.remove_composition_degeneracy,
             remove_scaling_degeneracy=self.remove_scaling_degeneracy,
             use_order_constraint=self.use_order_constraint,
+            ray_verbosity=self.ray_verbosity,
         )
 
         if return_ax_client:

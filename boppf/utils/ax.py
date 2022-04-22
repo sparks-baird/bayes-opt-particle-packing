@@ -46,6 +46,7 @@ def optimize_ppf(
     remove_composition_degeneracy=True,
     remove_scaling_degeneracy=False,
     use_order_constraint=False,
+    ray_verbosity=3,
 ):
     n_train = X_train.shape[0]
 
@@ -230,7 +231,7 @@ def optimize_ppf(
         fail_fast=False,
         num_samples=n_trials,
         search_alg=algo,
-        verbose=3,  # Set this level to 1 to see status updates and to 2 to also see trial results.
+        verbose=ray_verbosity,  # Set this level to 1 to see status updates and to 2 to also see trial results.
         local_dir=getcwd(),
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
