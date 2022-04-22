@@ -30,6 +30,7 @@ from boppf.utils.plotting import (
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 
 dummy = False
+interact_contour = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -159,7 +160,12 @@ for kwargs in COMBS_KWARGS:
                 )
         fig_path = path.join(fig_dir, f"interact_slice_{seed}")
         fig = interact_slice_plotly(model)
-        plot_and_save(fig_path, fig, mpl_kwargs=dict(width_inches=4.0), show=False)
+        plot_and_save(
+            fig_path,
+            fig,
+            mpl_kwargs=dict(width_inches=5.0, height_inches=3.0),
+            show=False,
+        )
 
         fig_path = path.join(fig_dir, f"contour_2d_{seed}")
         fig = to_plotly(
@@ -167,11 +173,17 @@ for kwargs in COMBS_KWARGS:
                 param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
             )
         )
-        plot_and_save(fig_path, fig, mpl_kwargs=dict(width_inches=4.0), show=False)
+        plot_and_save(
+            fig_path,
+            fig,
+            mpl_kwargs=dict(size=16, width_inches=6.5, height_inches=4.0),
+            show=False,
+        )
 
-        fig_path = path.join(fig_dir, f"interact_contour_2d_{seed}")
-        fig = interact_contour_plotly(model=model, metric_name=metric)
-        plot_and_save(fig_path, fig, show=False)
+        if interact_contour:
+            fig_path = path.join(fig_dir, f"interact_contour_2d_{seed}")
+            fig = interact_contour_plotly(model=model, metric_name=metric)
+            plot_and_save(fig_path, fig, show=False)
 
         fig = to_plotly(plot_marginal_effects(model, metric))
         # fig.update_yaxes(title_text="Percent worse than experimental average")
