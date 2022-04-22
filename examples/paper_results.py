@@ -43,13 +43,8 @@ else:
 
 for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
     for seed in tqdm(random_seeds, postfix="seed"):
-        # pprint(kwargs)
-        # print("seed: ", seed)
-        # kwargs = dict(
-        #     remove_scaling_degeneracy=False,
-        #     remove_composition_degeneracy=True,
-        #     use_order_constraint=False,
-        # )
+        print(kwargs, ", seed: ", seed)
+
         boppf = BOPPF(
             dummy=dummy,
             n_sobol=n_sobol,
