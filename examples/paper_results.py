@@ -37,7 +37,7 @@ else:
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     # save one CPU for my poor, overworked machine
-    max_parallel = max(1, cpu_count(logical=False) - 1)
+    max_parallel = max(1, cpu_count(logical=False))
     debug = False
     random_seeds = SEEDS
 
