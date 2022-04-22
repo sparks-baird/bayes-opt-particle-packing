@@ -2,6 +2,7 @@
 from pprint import pprint
 from psutil import cpu_count
 import torch
+from tqdm import tqdm
 from boppf.boppf import BOPPF
 from boppf.utils.data import DUMMY_SEEDS, SEEDS, COMBS_KWARGS, load_data
 from time import time
@@ -10,7 +11,7 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = False
+dummy = True
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
@@ -40,8 +41,8 @@ else:
     debug = False
     random_seeds = SEEDS
 
-for kwargs in COMBS_KWARGS:
-    for seed in random_seeds:
+for kwargs in tqdm(COMBS_KWARGS):
+    for seed in tqdm(random_seeds):
         pprint(kwargs)
         print("seed: ", seed)
         # kwargs = dict(
@@ -60,6 +61,7 @@ for kwargs in COMBS_KWARGS:
             data_augmentation=False,
             debug=debug,
             seed=seed,
+            ray_verbosity=0,
             **kwargs,
         )
 

@@ -13,9 +13,9 @@ class BOPPF:
     def __init__(
         self,
         dummy=False,
-        particles=int(1.5e6),
+        particles=int(2.5e4),
         n_sobol=None,
-        n_bayes=1000,
+        n_bayes=100,
         save_dir="results",
         savename="experiment.json",
         max_parallel="cpu_count",
@@ -28,6 +28,7 @@ class BOPPF:
         remove_composition_degeneracy=True,
         remove_scaling_degeneracy=False,
         use_order_constraint=False,
+        ray_verbosity=3,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -73,6 +74,7 @@ class BOPPF:
         self.remove_composition_degeneracy = remove_composition_degeneracy
         self.remove_scaling_degeneracy = remove_scaling_degeneracy
         self.use_order_constraint = use_order_constraint
+        self.ray_verbosity = ray_verbosity
 
     def optimize(self, X_train, y_train, return_ax_client=False):
         # %% optimization
@@ -91,6 +93,7 @@ class BOPPF:
             remove_composition_degeneracy=self.remove_composition_degeneracy,
             remove_scaling_degeneracy=self.remove_scaling_degeneracy,
             use_order_constraint=self.use_order_constraint,
+            ray_verbosity=self.ray_verbosity,
         )
 
         if return_ax_client:

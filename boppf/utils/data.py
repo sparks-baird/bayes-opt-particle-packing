@@ -109,12 +109,19 @@ def _get_parameters(
     remove_composition_degeneracy=True,
 ):
     mean_pars = [
-        {"name": nm, "type": type, "bounds": mean_bnd} for nm in mean_names_out
+        {"name": nm, "type": type, "bounds": mean_bnd, "value_type": "float"}
+        for nm in mean_names_out
     ]
-    std_pars = [{"name": nm, "type": type, "bounds": std_bnd} for nm in std_names_out]
+    std_pars = [
+        {"name": nm, "type": type, "bounds": std_bnd, "value_type": "float"}
+        for nm in std_names_out
+    ]
 
     subfrac_names = frac_names[:-1]
-    frac_pars = [{"name": nm, "type": type, "bounds": frac_bnd} for nm in frac_names]
+    frac_pars = [
+        {"name": nm, "type": type, "bounds": frac_bnd, "value_type": "float"}
+        for nm in frac_names
+    ]
 
     if remove_composition_degeneracy:
         parameters = mean_pars + std_pars + frac_pars[:-1]
