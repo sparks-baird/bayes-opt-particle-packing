@@ -13,9 +13,9 @@ class BOPPF:
     def __init__(
         self,
         dummy=False,
-        particles=int(1.5e6),
+        particles=int(2.5e4),
         n_sobol=None,
-        n_bayes=1000,
+        n_bayes=100,
         save_dir="results",
         savename="experiment.json",
         max_parallel="cpu_count",

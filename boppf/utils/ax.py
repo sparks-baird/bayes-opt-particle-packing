@@ -166,7 +166,10 @@ def optimize_ppf(
     #     ax_client.experiment.search_space = generous_search
 
     k = 0
-    for i in tqdm(range(n_train)):
+    iter_vals = range(n_train)
+    if ray_verbosity != 0:
+        iter_vals = tqdm(iter_vals)
+    for i in iter_vals:
         x = X_train.iloc[i]
         y = y_train[i]
         combs = get_combs(data_augmentation, std_names)
