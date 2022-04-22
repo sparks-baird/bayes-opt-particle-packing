@@ -41,10 +41,10 @@ else:
     debug = False
     random_seeds = SEEDS
 
-for kwargs in tqdm(COMBS_KWARGS):
-    for seed in tqdm(random_seeds):
-        pprint(kwargs)
-        print("seed: ", seed)
+for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
+    for seed in tqdm(random_seeds, postfix="seed"):
+        # pprint(kwargs)
+        # print("seed: ", seed)
         # kwargs = dict(
         #     remove_scaling_degeneracy=False,
         #     remove_composition_degeneracy=True,
