@@ -8,6 +8,7 @@ from ax.modelbridge.cross_validation import cross_validate
 from ax.plot.diagnostic import interact_cross_validation_plotly
 from ax.plot.marginal_effects import plot_marginal_effects
 from ax.plot.slice import interact_slice_plotly, plot_slice_plotly
+from ax.plot.contour import interact_contour_plotly
 from ax.service.ax_client import AxClient
 import pandas as pd
 from boppf.utils.data import (
@@ -29,6 +30,7 @@ from boppf.utils.plotting import (
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 
 dummy = False
+interact_contour = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -97,6 +99,8 @@ for kwargs in COMBS_KWARGS:
         experiments.append(experiment)
 
         # NOTE: slightly changing the directory structure
+        # TODO: remove "seed" from the filenames since it's in the dir structure now
+        # at least for a later manuscript
         fig_dir = path.join(
             fig_dir_base,
             f"n_sobol={n_sobol},n_bayes={n_bayes}",
@@ -109,6 +113,7 @@ for kwargs in COMBS_KWARGS:
             ylabel=target_lbl,
             optimization_direction=optimization_direction,
         )
+        fig.update_yaxes(range=[0.2, 0.85])
         Path(fig_dir).mkdir(exist_ok=True, parents=True)
 
         plot_and_save(
@@ -116,7 +121,8 @@ for kwargs in COMBS_KWARGS:
         )
 
         metric = ax_client.objective_name
-        model = get_GPEI(experiment, experiment.fetch_data())
+        model = ax_client.generation_strategy.model
+        # model = get_GPEI(experiment, experiment.fetch_data())
         ax_feature_importances.append(model.feature_importances(metric))
         fig = plot_feature_importance_by_feature_plotly(model)
 
@@ -154,7 +160,30 @@ for kwargs in COMBS_KWARGS:
                 )
         fig_path = path.join(fig_dir, f"interact_slice_{seed}")
         fig = interact_slice_plotly(model)
-        plot_and_save(fig_path, fig, mpl_kwargs=dict(width_inches=4.0), show=False)
+        plot_and_save(
+            fig_path,
+            fig,
+            mpl_kwargs=dict(width_inches=5.0, height_inches=3.0),
+            show=False,
+        )
+
+        fig_path = path.join(fig_dir, f"contour_2d_{seed}")
+        fig = to_plotly(
+            ax_client.get_contour_plot(
+                param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
+            )
+        )
+        plot_and_save(
+            fig_path,
+            fig,
+            mpl_kwargs=dict(size=16, width_inches=6.5, height_inches=4.0),
+            show=False,
+        )
+
+        if interact_contour:
+            fig_path = path.join(fig_dir, f"interact_contour_2d_{seed}")
+            fig = interact_contour_plotly(model=model, metric_name=metric)
+            plot_and_save(fig_path, fig, show=False)
 
         fig = to_plotly(plot_marginal_effects(model, metric))
         # fig.update_yaxes(title_text="Percent worse than experimental average")
@@ -216,8 +245,14 @@ for kwargs in COMBS_KWARGS:
     fig = my_std_optimization_trace_single_method_plotly(
         experiments, ylabel=target_lbl, optimization_direction=optimization_direction
     )
+    fig.update_yaxes(range=[0.4, 0.8])
     plot_and_save(
-        path.join(fig_dir_base, "best_objective_std_plot"),
+        path.join(
+            fig_dir_base,
+            f"n_sobol={n_sobol},n_bayes={n_bayes}",
+            f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
+            "best_objective_std_plot",
+        ),
         fig,
         update_legend=True,
         show=False,
@@ -236,7 +271,9 @@ for kwargs in COMBS_KWARGS:
     )
     fig_path = path.join(
         fig_dir_base,
-        f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}_avg_feature_importances",
+        f"n_sobol={n_sobol},n_bayes={n_bayes}",
+        f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
+        "avg_feature_importances",
     )
     plot_and_save(fig_path, fig, mpl_kwargs=dict(size=16), show=False)
 
@@ -256,7 +293,7 @@ for seed in random_seeds:
     sub_df = main_df[main_df.seed == seed]
     df_to_rounded_csv(sub_df, save_dir=tab_dir, save_name=f"best_of_seed={seed}.csv")
 
-
+1 + 1
 # %% Code Graveyard
 # exp = ax_client.experiment
 # data = exp.fetch_data()

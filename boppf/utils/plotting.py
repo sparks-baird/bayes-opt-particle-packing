@@ -21,7 +21,9 @@ logger = get_logger(__name__)
 def matplotlibify(fig, size=24, width_inches=3.5, height_inches=3.5, dpi=142):
     # make it look more like matplotlib
     # modified from: https://medium.com/swlh/formatting-a-plotly-figure-with-matplotlib-style-fa56ddd97539)
-    font_dict = dict(family="Arial", size=size, color="black")
+    family = "Arial"
+    color = "black"
+    font_dict = dict(family=family, size=size, color=color)
 
     fig.update_layout(
         font=font_dict,
@@ -54,6 +56,15 @@ def matplotlibify(fig, size=24, width_inches=3.5, height_inches=3.5, dpi=142):
         tickcolor="black",
     )
     fig.update(layout_coloraxis_showscale=False)
+    fig.update_coloraxes(colorbar_tickfont=font_dict)
+    for d in fig.data:
+        if isinstance(d, go.Contour):
+            d.colorbar.tickfont.size = size
+            d.colorbar.tickfont.family = family
+            d.colorbar.tickfont.color = color
+
+    for a in fig.layout.annotations:
+        a.font = font_dict
 
     width_default_px = fig.layout.width
     targ_dpi = 300

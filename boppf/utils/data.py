@@ -56,12 +56,12 @@ def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy
     orig_std_names = copy(std_names)
     if remove_scaling_degeneracy:
         mu3 = 10.0  # NOTE: hardcoded here and in one other place
-        low, upp = mean_bnd
-        generous_mean_bnd = [low / upp, upp / low]
+        mean_low, mean_upp = mean_bnd
+        generous_mean_bnd = [mean_low / mean_upp, mean_upp / mean_low]
         mean_bnd = [lim / mu3 for lim in mean_bnd]
         mean_names_out = [f"mu1{SPLIT}mu3", f"mu2{SPLIT}mu3"]
-        low, upp = std_bnd
-        generous_std_bnd = [low / upp, upp / low]
+        std_low, std_upp = std_bnd
+        generous_std_bnd = [std_low / mean_upp, std_upp / mean_low]
         std_bnd = [lim / mu3 for lim in std_bnd]
         std_names_out = [f"std1{SPLIT}mu3", f"std2{SPLIT}mu3", f"std3{SPLIT}mu3"]
     else:
