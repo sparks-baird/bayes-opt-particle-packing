@@ -1,5 +1,4 @@
 """Reproduce paper results."""
-from itertools import product
 from pprint import pprint
 from psutil import cpu_count
 import torch
@@ -11,7 +10,7 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = True
+dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
@@ -32,7 +31,7 @@ if dummy:
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
-    particles = int(1e5)
+    particles = int(2.5e4)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)

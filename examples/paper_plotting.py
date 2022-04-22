@@ -28,7 +28,7 @@ from boppf.utils.plotting import (
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 
-dummy = True
+dummy = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -40,7 +40,7 @@ if dummy:
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
-    particles = int(2.5e5)
+    particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
     max_parallel = 7  # SparksOne has 8 cores, so one fewer than this
