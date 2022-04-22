@@ -236,7 +236,7 @@ def optimize_ppf(
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
 
-    # to allow breakpoints after this, might cause a worker.py file to display
+    # to allow breakpoints after this
     ray.shutdown()
 
     best_parameters, values = ax_client.get_best_parameters()

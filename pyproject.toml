@@ -16,7 +16,7 @@ classifiers = [
 ]
 dynamic = ["version", "description"]
 
-dependencies = ["ax-platform", "ray[tune]", "tqdm", "psutil"]
+dependencies = ["ax-platform", "pyro-ppl", "ray[tune]", "tqdm", "psutil", "kaleido"]
 
 requires-python = ">=3.7,<3.10"
 

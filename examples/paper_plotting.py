@@ -41,7 +41,7 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 50 - n_sobol
+    n_bayes = 100 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
