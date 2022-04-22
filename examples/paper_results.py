@@ -11,7 +11,7 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = True
+dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
