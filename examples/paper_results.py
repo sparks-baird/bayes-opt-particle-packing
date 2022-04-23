@@ -11,7 +11,7 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = True
+dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
@@ -31,7 +31,7 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 100 - n_sobol
+    n_bayes = 50 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
@@ -43,13 +43,8 @@ else:
 
 for kwargs in tqdm(COMBS_KWARGS):
     for seed in tqdm(random_seeds):
-        pprint(kwargs)
-        print("seed: ", seed)
-        # kwargs = dict(
-        #     remove_scaling_degeneracy=False,
-        #     remove_composition_degeneracy=True,
-        #     use_order_constraint=False,
-        # )
+        print(kwargs, ", seed: ", seed)
+
         boppf = BOPPF(
             dummy=dummy,
             n_sobol=n_sobol,
@@ -72,3 +67,11 @@ for kwargs in tqdm(COMBS_KWARGS):
         print("elapsed (s): ", time() - t0)
 
 1 + 1
+
+# %% code graveyard
+# kwargs = dict(
+#     remove_scaling_degeneracy=False,
+#     remove_composition_degeneracy=True,
+#     use_order_constraint=False,
+# )
+
