@@ -41,8 +41,8 @@ else:
     debug = False
     random_seeds = SEEDS
 
-for kwargs in tqdm(COMBS_KWARGS):
-    for seed in tqdm(random_seeds):
+for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
+    for seed in tqdm(random_seeds, postfix="seed"):
         print(kwargs, ", seed: ", seed)
 
         boppf = BOPPF(
