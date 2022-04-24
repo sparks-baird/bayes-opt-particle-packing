@@ -41,13 +41,13 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 100 - n_sobol
+    n_bayes = 50 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
-    max_parallel = 7  # SparksOne has 8 cores, so one fewer than this
+    max_parallel = 8  # SparksOne has 8 cores
     debug = False
-    random_seeds = SEEDS
+    random_seeds = [10, 11, 12]
 
 dir_base = "results"
 
