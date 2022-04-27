@@ -1,5 +1,6 @@
 from os import path
 from pathlib import Path
+import pickle
 
 # TODO: interested to see CV comparison between GPEI and SAASBO
 from ax.modelbridge.factory import get_GPEI
@@ -47,7 +48,7 @@ else:
     # save one CPU for my poor, overworked machine
     max_parallel = 8  # SparksOne has 8 cores
     debug = False
-    random_seeds = [10, 11, 12]
+    random_seeds = [10, 11, 12, 13, 14]
 
 dir_base = "results"
 
@@ -65,6 +66,8 @@ tab_dir_base = path.join(
 )
 
 dfs = []
+kwargs_dfs = []
+best_par_dfs = []
 for kwargs in COMBS_KWARGS:
     remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
     remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
@@ -85,6 +88,7 @@ for kwargs in COMBS_KWARGS:
     best_sems = []
     raw_means = []
     raw_sems = []
+    kwargs_list = []
     for seed in random_seeds:
         load_dir = path.join(
             dir_base,
@@ -214,7 +218,9 @@ for kwargs in COMBS_KWARGS:
         best_parameters.append(best_parameter)
         best_preds.append(best_pred)
         best_sems.append(best_sem)
+        kwargs_list.append(kwargs)
 
+    kwargs_dfs.append(pd.DataFrame(kwargs_list))
     par_df = pd.DataFrame(best_parameters)
     if remove_scaling_degeneracy:
         last_mean = mean_names[-1]
@@ -228,6 +234,7 @@ for kwargs in COMBS_KWARGS:
     if remove_composition_degeneracy:
         last_frac = frac_names[-1]
         par_df[last_frac] = 1.0 - par_df[frac_names[0:-1]].sum(axis=1)
+    best_par_dfs.append(par_df)
     result_df = pd.DataFrame(
         dict(
             seed=random_seeds,
@@ -240,6 +247,7 @@ for kwargs in COMBS_KWARGS:
     df = pd.concat((par_df, result_df), axis=1)
     df.drop(columns=["raw_sem"], inplace=True)
     df_to_rounded_csv(df, save_dir=tab_dir, save_name="best_results.csv")
+    df.to_csv(path.join(tab_dir, "best_results_unrounded.csv"))
     dfs.append(df)
 
     fig = my_std_optimization_trace_single_method_plotly(
@@ -277,18 +285,28 @@ for kwargs in COMBS_KWARGS:
     )
     plot_and_save(fig_path, fig, mpl_kwargs=dict(size=16), show=False)
 
+main_kwargs_df = pd.concat(kwargs_dfs, ignore_index=True)
 main_df = pd.concat(dfs, ignore_index=True)
 pars = {*mean_names, *std_names, *frac_names}
 all_columns = {*list(main_df.columns)}
 other_columns = all_columns - pars
 main_df = main_df[mean_names + std_names + frac_names + list(other_columns)]
-kwarg_df = pd.DataFrame(COMBS_KWARGS)
 mapper = dict(
     remove_scaling_degeneracy="rm_scl",
     remove_composition_degeneracy="rm_comp",
     use_order_constraint="order",
 )
-main_df = pd.concat((kwarg_df, main_df)).rename(mapper)
+main_df = (
+    pd.concat((main_kwargs_df, main_df), axis=1).rename(columns=mapper).reset_index()
+)
+# mapper didn't seem to actually rename as I expected it to
+
+main_path = path.join(tab_dir_base, "main_df")
+with open(main_path + ".pkl", "wb") as f:
+    pickle.dump(main_df, f)
+
+main_df.to_csv(main_path + ".csv")
+
 for seed in random_seeds:
     sub_df = main_df[main_df.seed == seed]
     df_to_rounded_csv(sub_df, save_dir=tab_dir, save_name=f"best_of_seed={seed}.csv")
