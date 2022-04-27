@@ -47,7 +47,7 @@ with open(main_path + ".pkl", "rb") as f:
     main_df = pickle.load(f)
 
 # overwrite for dummy run
-particles = 1000
+particles = int(2.5e5)
 
 
 @ray.remote
@@ -76,26 +76,34 @@ def validate_prediction(kwargs, seed):
     chdir("boppf/utils")
 
     vol_frac = particle_packing_simulation(
-        uid=uid, particles=particles, means=means, stds=stds, fractions=fractions
+        uid=uid, particles=particles, means=means, stds=stds, fractions=fractions,
     )
 
     chdir(cwd)
 
-    df = pd.DataFrame(dict(kwargs=kwargs, seed=seed, vol_frac=vol_frac))
-
-    df.to_csv(
-        path.join(
-            tab_dir_base,
-            f"n_sobol={n_sobol},n_bayes={n_bayes}",
-            f"augment=False,drop_last={kwargs['remove_composition_degeneracy']},drop_scaling={kwargs['remove_scaling_degeneracy']},order={kwargs['use_order_constraint']}",
-            "val_result_{seed}.csv",
+    df = pd.DataFrame(
+        dict(
+            remove_scaling_degeneracy=remove_scaling_degeneracy,
+            remove_composition_degeneracy=remove_composition_degeneracy,
+            use_order_constraint=use_order_constraint,
+            **sub_df[mean_names + std_names + frac_names].to_dict(),
+            seed=seed,
+            vol_frac=vol_frac,
         )
     )
+    tab_dir = path.join(
+        tab_dir_base,
+        f"n_sobol={n_sobol},n_bayes={n_bayes}",
+        f"augment=False,drop_last={kwargs['remove_composition_degeneracy']},drop_scaling={kwargs['remove_scaling_degeneracy']},order={kwargs['use_order_constraint']}",
+        "val_result_{seed}_particles={particles}.csv",
+    )
+    df.to_csv(tab_dir, index=False)
 
     return df
 
+
 ray.shutdown()
-ray.init(num_cpus=cpu_count(logical=False))
+ray.init(num_cpus=cpu_count(logical=False) - 1)
 # https://stackoverflow.com/questions/5236364/how-to-parallelize-list-comprehension-calculations-in-python
 dfs = ray.get(
     [
@@ -105,9 +113,13 @@ dfs = ray.get(
     ]
 )
 
-val_df = pd.concat(dfs, axis=1, ignore_index=True)
-val_df.to_csv(path.join(tab_dir_base, "val_results_unrounded.csv"))
-df_to_rounded_csv(val_df, path.join(tab_dir_base, "val_results.csv"))
+val_df = pd.concat(dfs, ignore_index=True)
+val_df.to_csv(
+    path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv")
+)
+df_to_rounded_csv(
+    val_df, save_dir=tab_dir_base, save_name=f"val_results_particles={particles}.csv"
+)
 
 
 1 + 1
