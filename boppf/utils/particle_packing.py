@@ -8,11 +8,15 @@ from sys import executable
 from typing import List
 import numpy as np
 from sklearn.preprocessing import normalize
+from numpy.random import lognormal
+from scipy.stats import lognorm
 
 # conda activate boppf
 # cd C:\Program Files\MATLAB\R2021a\extern\engines\python
 # python setup.py install
 from matlab import engine, double
+
+from boppf.utils.proprietary import write_proprietary_input_file
 
 
 def particle_packing_simulation(
@@ -54,25 +58,41 @@ def particle_packing_simulation(
 
 
 def write_input_file(uid, particles, means, stds, fractions):
+    fractions[fractions < 1e-6] = 0.0
+    fractions = normalize(fractions.reshape(1, -1), norm="l1")
+
+    # sample points and their probabilities from log-normal
+    for mean, std in zip(means, stds):
+        # lognormal(mean=mean, sigma=std, size=100)
+        s = std
+        scale = np.exp(mean)
+        samples = lognorm.rvs(s, scale=scale)
+
+        alphas = np.linspace(0, 1, 102)
+        # remove first and last (avoid 0 or near-zero for log-normal)
+        del alphas[0]
+        del alphas[-1]
+        samples = lognorm.ppf(alphas, s, scale=scale)
+
+        probs = lognorm.pdf(samples, s, scale=scale)
+
+        # REVIEW: not sure if it's better to use lognorm.ppf+np.linspace or lognorm.rvs
+        # or just use more samples so it matters less
+        # dist=lognorm([std],loc=mean)
+
+    # TODO: don't include a mode if the fraction is close to 0, same for submode
+
+    # working directory and path finagling
     cwd = os.getcwd()
     os.chdir(join("..", ".."))
-    eng = engine.start_matlab()
-    eng.addpath(join("boppf", "utils"))
-
-    means = double(list(means))
-    stds = double(list(stds))
-    fractions = np.append(fractions, 1 - np.sum(fractions))
-    fractions[fractions < 1e-6] = 0.0
-    fractions = normalize(fractions.reshape(1, -1))
-    fractions = double([fractions.tolist()])
-
-    util_dir = join("boppf", "utils")
     data_dir = join("boppf", "data")
-
     Path(data_dir).mkdir(exist_ok=True, parents=True)
-    eng.write_input_file(uid, means, stds, fractions, particles, data_dir, nargout=0)
-    eng.quit()
-    return cwd, eng, util_dir, data_dir
+
+    write_proprietary_input_file(
+        uid, particles, s_radii, c_radii, m_fracs, data_dir=data_dir
+    )
+
+    return cwd, util_dir, data_dir
 
 
 def run_simulation(uid, util_dir, data_dir):
@@ -98,3 +118,23 @@ def read_vol_frac(uid, cwd, eng, data_dir):
 # print(out, err)
 # print(getcwd())
 
+# def write_input_file(uid, particles, means, stds, fractions):
+#     cwd = os.getcwd()
+#     os.chdir(join("..", ".."))
+#     eng = engine.start_matlab()
+#     eng.addpath(join("boppf", "utils"))
+
+#     means = double(list(means))
+#     stds = double(list(stds))
+#     fractions = np.append(fractions, 1 - np.sum(fractions))
+#     fractions[fractions < 1e-6] = 0.0
+#     fractions = normalize(fractions.reshape(1, -1), norm="l1")
+#     fractions = double([fractions.tolist()])
+
+#     util_dir = join("boppf", "utils")
+#     data_dir = join("boppf", "data")
+
+#     Path(data_dir).mkdir(exist_ok=True, parents=True)
+#     eng.write_input_file(uid, means, stds, fractions, particles, data_dir, nargout=0)
+#     eng.quit()
+#     return cwd, eng, util_dir, data_dir
