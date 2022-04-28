@@ -4,6 +4,7 @@ from os import getcwd, path
 from pathlib import Path
 import pandas as pd
 import ray
+from sklearn.preprocessing import normalize
 import torch
 from tqdm import tqdm
 
@@ -200,7 +201,11 @@ def optimize_ppf(
         # https://discuss.ray.io/t/how-to-perform-data-augmentation-with-raytune-and-axsearch/5829
 
         if not remove_composition_degeneracy:
+            fracs = np.array([parameters[nm] for nm in frac_names])
+            fracs = normalize(fracs.reshape(1, -1), norm="l1")
             last_component = frac_names[-1]
+            for nm, frac in zip(frac_names, fracs):
+                parameters[nm] = frac
             parameters.pop(last_component)
 
         if remove_scaling_degeneracy:
