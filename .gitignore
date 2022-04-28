@@ -140,4 +140,4 @@ dmypy.json
 results/dummy/experiment.json
 results/dummy/results.csv
 boppf/data/e3abf1f3.zip
-**/write_proprietary_input_file.py
+**/proprietary.py
