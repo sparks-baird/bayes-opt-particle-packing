@@ -51,8 +51,8 @@ def load_data(fname="packing-fraction.csv", folder="data"):
 def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy=False):
     # TODO: add kwargs for the other two irreducible search spaces
     type = "range"
-    mean_bnd = [1.0, 50.0]
-    std_bnd = [0.1, 2.0]
+    mean_bnd = [1.0, 5.0]
+    std_bnd = [0.1, 1.0]
     frac_bnd = [0.0, 1.0]
     orig_mean_names = copy(mean_names)
     orig_std_names = copy(std_names)
