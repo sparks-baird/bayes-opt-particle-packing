@@ -157,7 +157,7 @@ def optimize_ppf(
     # else:
     #     final_params = parameters
 
-    # Generous bound results in up to 2500x ratio, so don't use
+    # Generous bound results in up to e.g. 2500x instead of 50x max ratio, so don't use
     final_params = parameters
 
     ax_client.create_experiment(
