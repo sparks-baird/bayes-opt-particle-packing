@@ -71,7 +71,7 @@ def write_input_file(
     fractions,
     tol=1e-6,
     random_state=None,
-    size=1000,
+    size=15,
     alpha=0.99,
 ):
     fractions = np.array(fractions)
@@ -101,6 +101,17 @@ def write_input_file(
 
             # cutoff = lognorm.ppf(alpha, s, scale=scale)
             # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
+
+            median = lognorm.median(s, scale=scale)
+
+            max_ratio = 16
+            upp = np.sqrt(max_ratio)  # e.g. 4
+            low = 1 / upp  # e.g. 0.25
+            s_mode_radii = s_mode_radii[
+                np.all(
+                    [s_mode_radii > low * median, s_mode_radii < upp * median], axis=0
+                )
+            ]
 
             probs = lognorm.pdf(s_mode_radii, s, scale=scale)
 
@@ -158,6 +169,7 @@ def read_vol_frac(uid, cwd, data_dir):
             if passed_section and LINE_KEY in line:
                 vol_frac_line = line.replace("\n", "")
         vol_frac = vol_frac_line.split(", ")[1]
+        vol_frac = float(vol_frac)
     print("vol_frac: ", vol_frac)
 
     os.chdir(cwd)
