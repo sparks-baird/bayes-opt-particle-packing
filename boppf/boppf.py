@@ -64,9 +64,9 @@ class BOPPF:
 
         ray.shutdown()
         if debug:
-            ray.init(local_mode=True)
+            ray.init(local_mode=True, num_cpus=max_parallel)
         else:
-            ray.init()
+            ray.init(num_cpus=max_parallel)
 
         self.seed = seed
 
