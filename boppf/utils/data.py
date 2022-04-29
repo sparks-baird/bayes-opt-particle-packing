@@ -20,6 +20,8 @@ SPLIT = "_div_"
 SEEDS = list(range(13, 15))
 DUMMY_SEEDS = SEEDS[0:2]
 
+MU3 = 1.0
+
 combs = list(product([True, False], repeat=3))
 
 keys = [
@@ -49,21 +51,20 @@ def load_data(fname="packing-fraction.csv", folder="data"):
 def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy=False):
     # TODO: add kwargs for the other two irreducible search spaces
     type = "range"
-    mean_bnd = [10.0, 500.0]
-    std_bnd = [1.0, 1000.0]
+    mean_bnd = [1.0, 50.0]
+    std_bnd = [0.1, 2.0]
     frac_bnd = [0.0, 1.0]
     orig_mean_names = copy(mean_names)
     orig_std_names = copy(std_names)
     if remove_scaling_degeneracy:
-        mu3 = 10.0  # NOTE: hardcoded here and in one other place
         mean_low, mean_upp = mean_bnd
         generous_mean_bnd = [mean_low / mean_upp, mean_upp / mean_low]
-        mean_bnd = [lim / mu3 for lim in mean_bnd]
+        mean_bnd = [lim / MU3 for lim in mean_bnd]
         mean_names_out = [f"mu1{SPLIT}mu3", f"mu2{SPLIT}mu3"]
-        std_low, std_upp = std_bnd
-        generous_std_bnd = [std_low / mean_upp, std_upp / mean_low]
-        std_bnd = [lim / mu3 for lim in std_bnd]
-        std_names_out = [f"std1{SPLIT}mu3", f"std2{SPLIT}mu3", f"std3{SPLIT}mu3"]
+
+        # NOTE: sigma should stay same to preserve log-normal distribution shape
+        generous_std_bnd = std_bnd
+        std_names_out = std_names
     else:
         mean_names_out = mean_names
         std_names_out = std_names
@@ -155,3 +156,11 @@ def gen_symmetric_trials(data, component_slot_names, composition_slot_names):
         comb_data.append({**component_dict, **composition_dict})
 
     return comb_data
+
+
+# %% Code Graveyard
+# std_low, std_upp = std_bnd
+# generous_std_bnd = [std_low / mean_upp, std_upp / mean_low]
+# std_bnd = [lim / mu3 for lim in std_bnd]
+# std_names_out = [f"std1{SPLIT}mu3", f"std2{SPLIT}mu3", f"std3{SPLIT}mu3"]
+
