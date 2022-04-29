@@ -212,7 +212,7 @@ def optimize_ppf(
 
         if not remove_composition_degeneracy:
             fracs = np.array([parameters[nm] for nm in frac_names])
-            fracs = normalize(fracs.reshape(1, -1), norm="l1")
+            fracs = normalize(fracs.reshape(1, -1), norm="l1")[0]
             last_component = frac_names[-1]
             for nm, frac in zip(frac_names, fracs):
                 parameters[nm] = frac
