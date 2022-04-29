@@ -1,5 +1,5 @@
 """Call the appropriate MATLAB scripts and executable."""
-from os import getcwd
+from os import getcwd, path
 import os
 from pathlib import Path
 from subprocess import DEVNULL, STDOUT, Popen, PIPE, run
@@ -7,23 +7,26 @@ from os.path import join, abspath
 from sys import executable
 from typing import List
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import normalize
 from numpy.random import lognormal
 from scipy.stats import lognorm
+from plotly import offline
+import plotly.express as px
 
 # conda activate boppf
 # cd C:\Program Files\MATLAB\R2021a\extern\engines\python
 # python setup.py install
 from matlab import engine, double
 
-from boppf.utils.proprietary import write_proprietary_input_file
+from boppf.utils.proprietary import SECTION_KEY, write_proprietary_input_file, LINE_KEY
 
 
 def particle_packing_simulation(
     uid: str = "tmp",
     particles: int = int(1.5e6),
     means: List[float] = [120.0, 120.0, 120.0],
-    stds: List[float] = [10.0, 10.0, 10.0],
+    stds: List[float] = [1.0, 1.0, 1.0],
     fractions: List[float] = [0.33, 0.33],
 ):
     """Perform particle packing simulation.py
@@ -46,45 +49,88 @@ def particle_packing_simulation(
     vol_frac : float
         Volumetric packing fraction of the lump of dropped particles.
     """
-    cwd, eng, util_dir, data_dir = write_input_file(
-        uid, particles, means, stds, fractions
-    )
+    cwd, util_dir, data_dir = write_input_file(uid, particles, means, stds, fractions)
 
     run_simulation(uid, util_dir, data_dir)
 
-    vol_frac = read_vol_frac(uid, cwd, eng, data_dir)
+    vol_frac = read_vol_frac(uid, cwd, data_dir)
 
     return vol_frac
 
 
-def write_input_file(uid, particles, means, stds, fractions):
-    fractions[fractions < 1e-6] = 0.0
-    fractions = normalize(fractions.reshape(1, -1), norm="l1")
+def normalize_row_l1(x):
+    normed_row = x / sum(x)
+    return normed_row
+
+
+def write_input_file(
+    uid,
+    particles,
+    means,
+    stds,
+    fractions,
+    tol=1e-6,
+    random_state=None,
+    size=1000,
+    alpha=0.99,
+):
+    fractions = np.array(fractions)
+    fractions[fractions < tol] = 0.0
+    fractions = normalize_row_l1(fractions)
 
     # sample points and their probabilities from log-normal
-    for mean, std in zip(means, stds):
+    s_radii = []
+    c_radii = []
+    m_fracs = []
+    for mu, sigma, frac in zip(means, stds, fractions):
         # lognormal(mean=mean, sigma=std, size=100)
-        s = std
-        scale = np.exp(mean)
-        samples = lognorm.rvs(s, scale=scale)
+        if frac >= tol:
 
-        alphas = np.linspace(0, 1, 102)
-        # remove first and last (avoid 0 or near-zero for log-normal)
-        del alphas[0]
-        del alphas[-1]
-        samples = lognorm.ppf(alphas, s, scale=scale)
+            s = sigma
+            # scale: such that np.mean(samples) = mu (approx.)
+            scale = mu / np.sqrt(np.exp(1))
 
-        probs = lognorm.pdf(samples, s, scale=scale)
+            # s_mode_radii = lognorm.rvs(
+            #     s, scale=scale, size=size, random_state=random_state
+            # )
 
-        # REVIEW: not sure if it's better to use lognorm.ppf+np.linspace or lognorm.rvs
-        # or just use more samples so it matters less
-        # dist=lognorm([std],loc=mean)
+            alphas = np.linspace(0, 1, size + 2)
+            # remove first and last (avoid 0 or near-zero for log-normal)
+            alphas = alphas[1:-1]
+            s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
 
-    # TODO: don't include a mode if the fraction is close to 0, same for submode
+            # cutoff = lognorm.ppf(alpha, s, scale=scale)
+            # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
+
+            probs = lognorm.pdf(s_mode_radii, s, scale=scale)
+
+            normed_probs = normalize_row_l1(probs)
+            m_mode_fracs = normed_probs * frac
+
+            # df = pd.DataFrame(
+            #     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
+            # )
+            # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
+            # offline.plot(fig)
+
+            # remove submodes close to zero
+            keep_ids = m_mode_fracs > tol
+
+            probs = probs[keep_ids]
+            normed_probs = normed_probs[keep_ids]
+            m_mode_fracs = m_mode_fracs[keep_ids]
+            s_mode_radii = s_mode_radii[keep_ids]
+
+            c_mode_radii = 20 * s_mode_radii
+
+            s_radii.append(s_mode_radii)
+            c_radii.append(c_mode_radii)
+            m_fracs.append(m_mode_fracs)
 
     # working directory and path finagling
     cwd = os.getcwd()
     os.chdir(join("..", ".."))
+    util_dir = join("boppf", "utils")
     data_dir = join("boppf", "data")
     Path(data_dir).mkdir(exist_ok=True, parents=True)
 
@@ -101,15 +147,32 @@ def run_simulation(uid, util_dir, data_dir):
     run([fpath], input=input, text=True, stdout=PIPE, stderr=STDOUT)
 
 
-def read_vol_frac(uid, cwd, eng, data_dir):
-    eng = engine.start_matlab()
-    eng.addpath(join("boppf", "utils"))
-    vol_frac = eng.read_vol_frac(uid, data_dir)
+def read_vol_frac(uid, cwd, data_dir):
+    fpath = path.join(data_dir, f"{uid}.stat")
+    with open(fpath, "r") as f:
+        lines = f.readlines()
+        passed_section = False
+        for line in lines:
+            if SECTION_KEY in line:
+                passed_section = True
+            if passed_section and LINE_KEY in line:
+                vol_frac_line = line.replace("\n", "")
+        vol_frac = vol_frac_line.split(", ")[1]
     print("vol_frac: ", vol_frac)
-    eng.quit()
 
     os.chdir(cwd)
     return vol_frac
+
+
+# def read_vol_frac(uid, cwd, eng, data_dir):
+#     eng = engine.start_matlab()
+#     eng.addpath(join("boppf", "utils"))
+#     vol_frac = eng.read_vol_frac(uid, data_dir)
+#     print("vol_frac: ", vol_frac)
+#     eng.quit()
+
+#     os.chdir(cwd)
+#     return vol_frac
 
 
 # %% Code Graveyard
@@ -138,3 +201,25 @@ def read_vol_frac(uid, cwd, eng, data_dir):
 #     eng.write_input_file(uid, means, stds, fractions, particles, data_dir, nargout=0)
 #     eng.quit()
 #     return cwd, eng, util_dir, data_dir
+
+# alphas = np.linspace(0, 1, 1000 + 2)
+# # remove first and last (avoid 0 or near-zero for log-normal)
+# alphas = alphas[1:-1]
+
+# s = np.log(std)
+# scale = np.log(mean)
+# samples = lognorm.rvs(s, scale=scale, size=100)
+
+# probs = lognorm.pdf(samples, std, loc=mean)
+
+# s_mode_radii = normalize_row_l1(s_mode_radii)
+
+# maybe use something like MDL histogram density estimation
+
+# if len(x) > 1:
+#     normed_row = normalize(x.reshape(1, -1), norm="l1")[0]
+# else:
+#     normed_row = [1.0]
+# vol_frac_line = [l if LINE_KEY in l else "" for l in lines]
+# vol_frac_line = "".join(vol_frac_line)  # blank strings go away
+
