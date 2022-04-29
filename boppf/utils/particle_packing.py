@@ -29,6 +29,7 @@ def particle_packing_simulation(
     means: List[float] = [120.0, 120.0, 120.0],
     stds: List[float] = [1.0, 1.0, 1.0],
     fractions: List[float] = [0.33, 0.33],
+    max_submodes_per_mode: int = 33,
 ):
     """Perform particle packing simulation.py
 
@@ -44,13 +45,19 @@ def particle_packing_simulation(
         The log-normal standard deviations of the 3 particles, by default double([10, 10, 10])
     fractions : List[float], optional
         The mass fractions of the first two particles, by default double([0.33, 0.33])
+    max_n_submodes_per_mode : int
+        Maximum number of submodes for a given node. May be less than this because of
+        filtering based on max allowed size ratios. Might be restricted to fewer than
+        100 total submodes across all modes.
 
     Returns
     -------
     vol_frac : float
         Volumetric packing fraction of the lump of dropped particles.
     """
-    cwd, util_dir, data_dir = write_input_file(uid, particles, means, stds, fractions)
+    cwd, util_dir, data_dir = write_input_file(
+        uid, particles, means, stds, fractions, size=max_submodes_per_mode
+    )
 
     run_simulation(uid, util_dir, data_dir)
 
@@ -72,7 +79,7 @@ def write_input_file(
     fractions,
     tol=1e-6,
     random_state=None,
-    size=100,
+    size=33,  # max ~200 across all submodes (docs say 100)
     alpha=0.99,
 ):
     fractions = np.array(fractions)
@@ -100,42 +107,51 @@ def write_input_file(
             # alphas = alphas[1:-1]
             # s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
 
-            alphas = [1 / (size), (size - 1) / size]
-            s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
-            s_mode_radii = np.linspace(s_mode_low, s_mode_upp, size)
+            running_size = size
+            n_radii = 0
+            s_mode_radii = None
+            while n_radii <= size:
+                s_mode_previous = s_mode_radii
+                alphas = [1 / (running_size), (running_size - 1) / running_size]
+                s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
+                s_mode_radii = np.linspace(s_mode_low, s_mode_upp, running_size)
 
-            # cutoff = lognorm.ppf(alpha, s, scale=scale)
-            # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
+                # cutoff = lognorm.ppf(alpha, s, scale=scale)
+                # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
 
-            median = lognorm.median(s, scale=scale)
+                median = lognorm.median(s, scale=scale)
 
-            # make it relative to mu so I know the exact max ratios
-            max_ratio = 16
-            upp = np.sqrt(max_ratio)  # e.g. 4
-            low = 1 / upp  # e.g. 0.25
-            s_mode_radii = s_mode_radii[
-                np.all(
-                    [s_mode_radii > low * median, s_mode_radii < upp * median], axis=0
-                )
-            ]
+                # make it relative to mu so I know the exact max ratios
+                max_ratio = 16
+                upp = np.sqrt(max_ratio)  # e.g. 4
+                low = 1 / upp  # e.g. 0.25
+                s_mode_radii = s_mode_radii[
+                    np.all(
+                        [s_mode_radii > low * median, s_mode_radii < upp * median],
+                        axis=0,
+                    )
+                ]
+                n_radii = len(s_mode_radii)
+                running_size += 1
+            s_mode_radii = s_mode_previous
 
             probs = lognorm.pdf(s_mode_radii, s, scale=scale)
 
             normed_probs = normalize_row_l1(probs)
             m_mode_fracs = normed_probs * frac
 
-            ## plot radii and sampled histogram from the new (discrete) distribution
-            # check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
-            # df = pd.DataFrame(
-            #     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
-            # )
-            # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
+            # plot radii and sampled histogram from the new (discrete) distribution
+            check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
+            df = pd.DataFrame(
+                dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
+            )
+            fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
 
-            # fig.add_histogram(x=check_samples, histnorm="probability")
-            # fig.show()
+            fig.add_histogram(x=check_samples, histnorm="probability")
+            fig.show()
 
             # remove submodes close to zero
-            # (might not have any effect with low enough max_ratio)
+            # (might not have any effect with low enough max_ratio relative to tol)
             keep_ids = m_mode_fracs > tol
 
             probs = probs[keep_ids]
