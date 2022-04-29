@@ -18,7 +18,7 @@ from ray import tune
 from ray.tune import report
 from ray.tune.suggest.ax import AxSearch
 
-from boppf.utils.data import SPLIT, get_parameters, frac_names, target_name
+from boppf.utils.data import MU3, SPLIT, get_parameters, frac_names, target_name
 
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
@@ -145,6 +145,7 @@ def optimize_ppf(
         verbose_logging=False,
     )
 
+    # NOTE: this is somewhat redundant, see `get_parameters`
     if remove_scaling_degeneracy:
         final_params = generous_parameters
     else:
@@ -212,8 +213,8 @@ def optimize_ppf(
             names = mean_names + std_names
             for name in names:
                 orig_name = name.replace("_div_mu3", "")
-                parameters[orig_name] = parameters[name] * 10.0  # NOTE: hardcoded
-                parameters["mu3"] = 10.0
+                parameters[orig_name] = parameters[name] * 1.0  # NOTE: hardcoded
+                parameters["mu3"] = 1.0
 
         means = np.array([float(parameters.get(name)) for name in orig_mean_names])
         stds = np.array([float(parameters.get(name)) for name in orig_std_names])
@@ -312,7 +313,7 @@ def reparameterize(
     x.index = [mapper.get(x, x) for x in x.to_frame().index]
     if remove_scaling_degeneracy:
         last_mean = mean_names[-1]
-        scl = x[last_mean] / 10.0  # NOTE: hardcoded
+        scl = x[last_mean] / MU3  # NOTE: hardcoded
         x = x / scl
 
         for name in mean_names + std_names:
