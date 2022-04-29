@@ -13,6 +13,7 @@ from numpy.random import lognormal
 from scipy.stats import lognorm
 from plotly import offline
 import plotly.express as px
+from random import choices
 
 # conda activate boppf
 # cd C:\Program Files\MATLAB\R2021a\extern\engines\python
@@ -71,7 +72,7 @@ def write_input_file(
     fractions,
     tol=1e-6,
     random_state=None,
-    size=15,
+    size=100,
     alpha=0.99,
 ):
     fractions = np.array(fractions)
@@ -94,16 +95,21 @@ def write_input_file(
             #     s, scale=scale, size=size, random_state=random_state
             # )
 
-            alphas = np.linspace(0, 1, size + 2)
-            # remove first and last (avoid 0 or near-zero for log-normal)
-            alphas = alphas[1:-1]
-            s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
+            # alphas = np.linspace(0, 1, size + 2)
+            # # remove first and last (avoid 0 or near-zero for log-normal)
+            # alphas = alphas[1:-1]
+            # s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
+
+            alphas = [1 / (size), (size - 1) / size]
+            s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
+            s_mode_radii = np.linspace(s_mode_low, s_mode_upp, size)
 
             # cutoff = lognorm.ppf(alpha, s, scale=scale)
             # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
 
             median = lognorm.median(s, scale=scale)
 
+            # make it relative to mu so I know the exact max ratios
             max_ratio = 16
             upp = np.sqrt(max_ratio)  # e.g. 4
             low = 1 / upp  # e.g. 0.25
@@ -118,13 +124,18 @@ def write_input_file(
             normed_probs = normalize_row_l1(probs)
             m_mode_fracs = normed_probs * frac
 
+            ## plot radii and sampled histogram from the new (discrete) distribution
+            # check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
             # df = pd.DataFrame(
             #     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
             # )
             # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
-            # offline.plot(fig)
+
+            # fig.add_histogram(x=check_samples, histnorm="probability")
+            # fig.show()
 
             # remove submodes close to zero
+            # (might not have any effect with low enough max_ratio)
             keep_ids = m_mode_fracs > tol
 
             probs = probs[keep_ids]
