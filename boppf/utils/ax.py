@@ -2,6 +2,7 @@ from itertools import permutations
 import logging
 from os import getcwd, path
 from pathlib import Path
+import time
 import pandas as pd
 import ray
 from sklearn.preprocessing import normalize
@@ -78,9 +79,15 @@ def optimize_ppf(
 
     if use_order_constraint:
         n = len(std_names)
+        if remove_scaling_degeneracy:
+            # sigma1 < sigma2, because otherwise it narrows the true search space
+            last = n - 1
+        else:
+            # sigma1 < sigma2 < sigma3, because mu3 can take on any in-range value
+            last = n
         order_constraints = [
             f"{std_names[i]} <= {std_names[j]}"
-            for i, j in zip(range(n - 1), range(1, n))
+            for i, j in zip(range(last - 1), range(1, last))
         ]
     else:
         order_constraints = []
@@ -145,11 +152,13 @@ def optimize_ppf(
         verbose_logging=False,
     )
 
-    # NOTE: this is somewhat redundant, see `get_parameters`
-    if remove_scaling_degeneracy:
-        final_params = generous_parameters
-    else:
-        final_params = parameters
+    # if remove_scaling_degeneracy:
+    #     final_params = generous_parameters
+    # else:
+    #     final_params = parameters
+
+    # Generous bound results in up to 2500x ratio, so don't use
+    final_params = parameters
 
     ax_client.create_experiment(
         name="particle_packing",
@@ -213,8 +222,8 @@ def optimize_ppf(
             names = mean_names + std_names
             for name in names:
                 orig_name = name.replace("_div_mu3", "")
-                parameters[orig_name] = parameters[name] * 1.0  # NOTE: hardcoded
-                parameters["mu3"] = 1.0
+                parameters[orig_name] = parameters[name] * MU3  # NOTE: hardcoded
+                parameters["mu3"] = MU3
 
         means = np.array([float(parameters.get(name)) for name in orig_mean_names])
         stds = np.array([float(parameters.get(name)) for name in orig_std_names])
@@ -225,9 +234,9 @@ def optimize_ppf(
         d = {target_name: vol_frac}  # can't specify SEM perhaps?
         report(**d)
 
-    # sequential
+    # # sequential
     # for i in range(n_trials):
-    #     parameters, trial_index = ax_client.get_next_trial(max_parallel)
+    #     parameters, trial_index = ax_client.get_next_trial()
     #     ax_client.complete_trial(trial_index=trial_index, raw_data=evaluate(parameters))
 
     # Set up AxSearcher in RayTune
