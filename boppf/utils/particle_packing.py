@@ -154,9 +154,17 @@ def write_input_file(
             # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
 
             # fig.add_histogram(x=check_samples, histnorm="probability")
+            # fig.add_annotation(
+            #     xref="paper",
+            #     yref="paper",
+            #     x=0.9,
+            #     y=0.9,
+            #     text=f"scale={scale:.3f}, s={s:.3f}",
+            #     showarrow=False,
+            # )
             # fig.show()
             # print(
-            #     f"scale={scale}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
+            #     f"scale={scale}, s={s}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
             # )
 
             # remove submodes close to zero
