@@ -96,7 +96,9 @@ def write_input_file(
 
             s = sigma
             # scale: such that np.mean(samples) = mu (approx.)
-            scale = mu / np.sqrt(np.exp(1))
+            # scale = mu / np.sqrt(np.exp(1))
+
+            scale = mu
 
             # s_mode_radii = lognorm.rvs(
             #     s, scale=scale, size=size, random_state=random_state
@@ -120,9 +122,10 @@ def write_input_file(
                 # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
 
                 # by choosing the median rather than the mean after applying the scaling
-                # that I did, I don't have a guarantee of the max ratio between any two particles in a system of 3
-                # distributions
-                median = lognorm.median(s, scale=scale)
+                # then the max ratio between any two particles in a system of 3
+                # distributions isn't a hard constraint
+
+                # median = lognorm.median(s, scale=scale)
 
                 # make it relative to mu so I know the exact max ratios
                 max_ratio = 16
@@ -130,7 +133,7 @@ def write_input_file(
                 low = 1 / upp  # e.g. 0.25
                 s_mode_radii = s_mode_radii[
                     np.all(
-                        [s_mode_radii > low * median, s_mode_radii < upp * median],
+                        [s_mode_radii > low * scale, s_mode_radii < upp * scale],
                         axis=0,
                     )
                 ]
