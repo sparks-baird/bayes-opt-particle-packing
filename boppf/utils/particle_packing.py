@@ -155,6 +155,9 @@ def write_input_file(
 
             # fig.add_histogram(x=check_samples, histnorm="probability")
             # fig.show()
+            # print(
+            #     f"scale={scale}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
+            # )
 
             # remove submodes close to zero
             # (might not have any effect with low enough max_ratio relative to tol)
