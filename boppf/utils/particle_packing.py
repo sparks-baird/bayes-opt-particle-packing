@@ -119,6 +119,9 @@ def write_input_file(
                 # cutoff = lognorm.ppf(alpha, s, scale=scale)
                 # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
 
+                # by choosing the median rather than the mean after applying the scaling
+                # that I did, I don't have a guarantee of the max ratio between any two particles in a system of 3
+                # distributions
                 median = lognorm.median(s, scale=scale)
 
                 # make it relative to mu so I know the exact max ratios
