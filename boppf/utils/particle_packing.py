@@ -140,15 +140,15 @@ def write_input_file(
             normed_probs = normalize_row_l1(probs)
             m_mode_fracs = normed_probs * frac
 
-            # plot radii and sampled histogram from the new (discrete) distribution
-            check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
-            df = pd.DataFrame(
-                dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
-            )
-            fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
+            # # plot radii and sampled histogram from the new (discrete) distribution
+            # check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
+            # df = pd.DataFrame(
+            #     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
+            # )
+            # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
 
-            fig.add_histogram(x=check_samples, histnorm="probability")
-            fig.show()
+            # fig.add_histogram(x=check_samples, histnorm="probability")
+            # fig.show()
 
             # remove submodes close to zero
             # (might not have any effect with low enough max_ratio relative to tol)
