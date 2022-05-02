@@ -1,9 +1,12 @@
 from os import path
+from pathlib import Path
 import pickle
 from uuid import uuid4
+import numpy as np
 from psutil import cpu_count
 
 import pandas as pd
+from tqdm import tqdm
 from boppf.utils.data import (
     COMBS_KWARGS,
     DUMMY_SEEDS,
@@ -46,8 +49,10 @@ main_path = path.join(tab_dir_base, "main_df")
 with open(main_path + ".pkl", "rb") as f:
     main_df = pickle.load(f)
 
-# overwrite for dummy run
+# overwrite
 particles = int(2.5e5)
+# particles = int(100)
+nvalreps = 10
 
 
 @ray.remote
@@ -68,16 +73,21 @@ def validate_prediction(kwargs, seed):
 
     uid = str(uuid4())[0:8]
 
-    means = sub_df[mean_names].values.tolist()
-    stds = sub_df[std_names].values.tolist()
-    fractions = sub_df[frac_names].values.tolist()
+    means = sub_df[mean_names].values.tolist()[0]
+    stds = sub_df[std_names].values.tolist()[0]
+    fractions = sub_df[frac_names].values.tolist()[0]
 
     cwd = getcwd()
     chdir("boppf/utils")
 
-    vol_frac = particle_packing_simulation(
-        uid=uid, particles=particles, means=means, stds=stds, fractions=fractions,
-    )
+    vol_fracs = []
+    for _ in range(nvalreps):
+        vol_frac = particle_packing_simulation(
+            uid=uid, particles=particles, means=means, stds=stds, fractions=fractions,
+        )
+        vol_fracs.append(vol_frac)
+    avg_vol_frac = np.mean(vol_fracs)
+    std_vol_frac = np.std(vol_fracs)
 
     chdir(cwd)
 
@@ -88,28 +98,37 @@ def validate_prediction(kwargs, seed):
             use_order_constraint=use_order_constraint,
             **sub_df[mean_names + std_names + frac_names].to_dict(),
             seed=seed,
-            vol_frac=vol_frac,
+            vol_frac=avg_vol_frac,
+            std=std_vol_frac,
         )
     )
     tab_dir = path.join(
         tab_dir_base,
         f"n_sobol={n_sobol},n_bayes={n_bayes}",
         f"augment=False,drop_last={kwargs['remove_composition_degeneracy']},drop_scaling={kwargs['remove_scaling_degeneracy']},order={kwargs['use_order_constraint']}",
-        "val_result_{seed}_particles={particles}.csv",
     )
-    df.to_csv(tab_dir, index=False)
+    Path(tab_dir).mkdir(exist_ok=True, parents=True)
+    df.to_csv(
+        path.join(tab_dir, f"val_result_{seed}_particles={particles}.csv"), index=False
+    )
+
+    df2 = pd.DataFrame(dict(vol_fracs=vol_fracs))
+    df2.to_csv(
+        path.join(tab_dir, f"val_result_{seed}_particles={particles}_repeats.csv")
+    )
 
     return df
 
 
 ray.shutdown()
-ray.init(num_cpus=cpu_count(logical=False) - 1)
+ray.init(num_cpus=cpu_count(logical=False))
 # https://stackoverflow.com/questions/5236364/how-to-parallelize-list-comprehension-calculations-in-python
 dfs = ray.get(
     [
+        # validate_prediction(kwargs, seed)
         validate_prediction.remote(kwargs, seed)
-        for kwargs in COMBS_KWARGS
-        for seed in random_seeds
+        for kwargs in tqdm(COMBS_KWARGS)
+        for seed in tqdm(random_seeds)
     ]
 )
 

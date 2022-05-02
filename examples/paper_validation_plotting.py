@@ -34,7 +34,7 @@ tab_dir_base = path.join(
 )
 
 # overwrite
-particles = 1000
+particles = int(2.5e4)
 
 mapper = dict(
     remove_scaling_degeneracy="rm_scl",
