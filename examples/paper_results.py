@@ -39,6 +39,7 @@ else:
     # save one CPU for my poor, overworked machine
     max_parallel = max(1, cpu_count(logical=False))
     debug = False
+    COMBS_KWARGS = COMBS_KWARGS[-2:]  # FIXME:
     random_seeds = SEEDS
 
 for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
