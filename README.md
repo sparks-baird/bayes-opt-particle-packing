@@ -1,6 +1,6 @@
 # Bayesian Optimization of Particle Packing Fractions (BOPPF)
 
-Bayesian optimization of particle packing fractions for nuclear fuels. The objective function (not released here) is based on proprietary code from Northrop Grumman Innovation Systems (NGIS).
+Bayesian optimization of particle packing fractions for solid rocket propellant fuels. The objective function (not released here) is based on proprietary code from Northrop Grumman Innovation Systems (NGIS).
 
 To reproduce, this requires a proprietary Windows executable (renamed to
 `particle_packing_sim.exe`), a MATLAB file

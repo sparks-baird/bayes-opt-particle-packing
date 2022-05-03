@@ -133,10 +133,12 @@ for kwargs in COMBS_KWARGS:
         fig_path = path.join(fig_dir, f"feature_importances_{seed}")
         plot_and_save(fig_path, fig, mpl_kwargs=dict(size=12))
 
+        x_range = [0.525, 0.8]
+        y_range = x_range
         cv = cross_validate(model)
         fig = interact_cross_validation_plotly(cv)
-        fig.update_xaxes(title_text="Actual Vol. Packing Fraction")
-        fig.update_yaxes(title_text="Predicted Vol. Packing Fraction")
+        fig.update_xaxes(title_text="Actual Vol. Packing Fraction", range=x_range)
+        fig.update_yaxes(title_text="Predicted Vol. Packing Fraction", range=y_range)
         fig_path = path.join(fig_dir, f"cross_validate_{seed}")
         plot_and_save(
             fig_path, fig, mpl_kwargs=dict(width_inches=4.0, size=20), show=False
@@ -253,7 +255,7 @@ for kwargs in COMBS_KWARGS:
     fig = my_std_optimization_trace_single_method_plotly(
         experiments, ylabel=target_lbl, optimization_direction=optimization_direction
     )
-    fig.update_yaxes(range=[0.4, 0.8])
+    fig.update_yaxes(range=[0.575, 0.775])
     plot_and_save(
         path.join(
             fig_dir_base,

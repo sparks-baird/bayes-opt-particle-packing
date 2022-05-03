@@ -26,11 +26,17 @@ else:
     random_seeds = [10, 11, 12, 13, 14]
 
 fig_dir_base = path.join(
-    "figures", f"particles={particles}", f"max_parallel={max_parallel}"
+    "figures",
+    f"particles={particles}",
+    f"max_parallel={max_parallel}",
+    f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 tab_dir_base = path.join(
-    "tables", f"particles={particles}", f"max_parallel={max_parallel}"
+    "tables",
+    f"particles={particles}",
+    f"max_parallel={max_parallel}",
+    f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 # overwrite
