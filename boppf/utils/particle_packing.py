@@ -30,8 +30,9 @@ def particle_packing_simulation(
     stds: List[float] = [1.0, 1.0, 1.0],
     fractions: List[float] = [0.33, 0.33],
     max_submodes_per_mode: int = 33,
+    verbose=True,
 ):
-    """Perform particle packing simulation.py
+    """Perform particle packing simulation.
 
     Parameters
     ----------
@@ -49,6 +50,8 @@ def particle_packing_simulation(
         Maximum number of submodes for a given node. May be less than this because of
         filtering based on max allowed size ratios. Might be restricted to fewer than
         100 total submodes across all modes.
+    verbose : bool
+        Whether or not to print the volume fraction.
 
     Returns
     -------
@@ -61,7 +64,7 @@ def particle_packing_simulation(
 
     run_simulation(uid, util_dir, data_dir)
 
-    vol_frac = read_vol_frac(uid, cwd, data_dir)
+    vol_frac = read_vol_frac(uid, cwd, data_dir, verbose=verbose)
 
     return vol_frac
 
@@ -202,7 +205,7 @@ def run_simulation(uid, util_dir, data_dir):
     run([fpath], input=input, text=True, stdout=PIPE, stderr=STDOUT)
 
 
-def read_vol_frac(uid, cwd, data_dir):
+def read_vol_frac(uid, cwd, data_dir, verbose=True):
     fpath = path.join(data_dir, f"{uid}.stat")
     with open(fpath, "r") as f:
         lines = f.readlines()
@@ -214,7 +217,9 @@ def read_vol_frac(uid, cwd, data_dir):
                 vol_frac_line = line.replace("\n", "")
         vol_frac = vol_frac_line.split(", ")[1]
         vol_frac = float(vol_frac)
-    print("vol_frac: ", vol_frac)
+
+    if verbose:
+        print("vol_frac: ", vol_frac)
 
     os.chdir(cwd)
     return vol_frac
