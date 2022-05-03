@@ -41,6 +41,7 @@ tab_dir_base = path.join(
 
 # overwrite
 particles = int(2.5e4)
+nvalreps = 50
 
 mapper = dict(
     remove_scaling_degeneracy="rm_scl",
@@ -48,7 +49,7 @@ mapper = dict(
     use_order_constraint="order",
 )
 val_df = pd.read_csv(
-    path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv")
+    path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv",)
 ).rename(columns=mapper)
 
 lbls = []
