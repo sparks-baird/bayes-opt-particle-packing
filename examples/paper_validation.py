@@ -50,9 +50,9 @@ with open(main_path + ".pkl", "rb") as f:
     main_df = pickle.load(f)
 
 # overwrite
-particles = int(2.5e5)
+particles = int(2.5e4)
 # particles = int(100)
-nvalreps = 10
+nvalreps = 50
 
 
 @ray.remote
@@ -109,12 +109,18 @@ def validate_prediction(kwargs, seed):
     )
     Path(tab_dir).mkdir(exist_ok=True, parents=True)
     df.to_csv(
-        path.join(tab_dir, f"val_result_{seed}_particles={particles}.csv"), index=False
+        path.join(
+            tab_dir, f"val_result_{seed}_particles={particles}_nvalreps={nvalreps}.csv"
+        ),
+        index=False,
     )
 
     df2 = pd.DataFrame(dict(vol_fracs=vol_fracs))
     df2.to_csv(
-        path.join(tab_dir, f"val_result_{seed}_particles={particles}_repeats.csv")
+        path.join(
+            tab_dir,
+            f"val_result_{seed}_particles={particles}_nvalreps={nvalreps}_repeats.csv",
+        )
     )
 
     return df
