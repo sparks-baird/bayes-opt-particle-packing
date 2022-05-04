@@ -14,6 +14,12 @@ from ax.plot.helper import compose_annotation
 from ax.utils.common.logger import get_logger
 from ax.plot.base import AxPlotConfig
 from plotly import offline
+import plotly.express as px
+from scipy.stats import lognorm
+from scipy.interpolate import interp1d
+
+from boppf.utils.data import prep_input_data
+import collections
 
 logger = get_logger(__name__)
 
@@ -311,6 +317,47 @@ def to_plotly(axplotconfig):
     return fig
 
 
+def flatten(x):
+    if isinstance(x, collections.Iterable):
+        return [a for i in x for a in flatten(i)]
+    else:
+        return [x]
+
+
+def plot_distribution(means, stds, fractions, tol=1e-6, size=33):
+    s_radii, _, m_fracs = prep_input_data(means, stds, fractions, tol, size)
+
+    s_flat = flatten(s_radii)
+    samples = np.linspace(min(s_flat), max(s_flat), 1000)
+
+    fns = [
+        interp1d(sr, mf, kind="cubic", bounds_error=False, fill_value=0.0)
+        for sr, mf in zip(s_radii, m_fracs)
+    ]
+
+    probs = np.sum([f(samples) for f in fns], axis=0)
+
+    dfs = []
+    for i, (s_mode_radii, m_mode_fracs) in enumerate(zip(s_radii, m_fracs)):
+        mode = i + 1
+        df = pd.DataFrame(
+            {
+                "mode": f"{mode} (scale={means[i]:.2f},s={stds[i]:.2f},p={np.sum(m_mode_fracs):.2f})",
+                "s_radii": s_mode_radii,
+                "m_fracs": m_mode_fracs,
+            }
+        )
+        dfs.append(df)
+    main_df = pd.concat(dfs, axis=0, join="inner")
+
+    fig = px.scatter(main_df, x="s_radii", y="m_fracs", color="mode")
+    fig.add_scatter(
+        x=samples, y=probs, name="interpolated and summed", line=dict(color="black")
+    )
+
+    return fig
+
+
 # def my_std_optimization_trace_single_method_plotly(
 #     experiments,
 #     ylabel="target",
@@ -360,3 +407,23 @@ def to_plotly(axplotconfig):
 #     else:
 #         raise ValueError("not an AxPlotConfig nor a Plotly Figure")
 #     return fig
+
+# weighted_radii = np.multiply(s_mode_radii, m_mode_fracs)
+
+# probs = [
+#     lognorm.pdf(
+#         samples[np.all([samples >= min(sr), samples <= max(sr)])], s, scale=scale,
+#     )
+#     for s, scale, sr in zip(stds, means, s_radii)
+# ]
+# summed_probs = np.sum(probs, axis=0)
+
+# probs = []
+# fracs = fractions + [1 - sum(fractions)]
+# for sample in samples:
+#     prob = 0.0
+#     for s, scale, sr, mf in zip(stds, means, s_radii, fracs):
+#         if sample >= min(sr) and sample <= max(sr):
+#             prob += mf * lognorm.pdf(sample, s, scale=scale)
+#     probs.append(prob)
+
