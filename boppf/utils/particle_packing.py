@@ -5,7 +5,7 @@ from pathlib import Path
 from subprocess import DEVNULL, STDOUT, Popen, PIPE, run
 from os.path import join, abspath
 from sys import executable
-from typing import List
+from typing import List, Optional
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize
@@ -19,6 +19,7 @@ from random import choices
 # cd C:\Program Files\MATLAB\R2021a\extern\engines\python
 # python setup.py install
 from matlab import engine, double
+from boppf.utils.data import prep_input_data
 
 from boppf.utils.proprietary import SECTION_KEY, write_proprietary_input_file, LINE_KEY
 
@@ -31,6 +32,7 @@ def particle_packing_simulation(
     fractions: List[float] = [0.33, 0.33],
     max_submodes_per_mode: int = 33,
     verbose=True,
+    seed: Optional[int] = None,
 ):
     """Perform particle packing simulation.
 
@@ -52,6 +54,7 @@ def particle_packing_simulation(
         100 total submodes across all modes.
     verbose : bool
         Whether or not to print the volume fraction.
+    seed : Optional[int]
 
     Returns
     -------
@@ -59,7 +62,7 @@ def particle_packing_simulation(
         Volumetric packing fraction of the lump of dropped particles.
     """
     cwd, util_dir, data_dir = write_input_file(
-        uid, particles, means, stds, fractions, size=max_submodes_per_mode
+        uid, particles, means, stds, fractions, size=max_submodes_per_mode, seed=seed
     )
 
     run_simulation(uid, util_dir, data_dir)
@@ -67,11 +70,6 @@ def particle_packing_simulation(
     vol_frac = read_vol_frac(uid, cwd, data_dir, verbose=verbose)
 
     return vol_frac
-
-
-def normalize_row_l1(x):
-    normed_row = x / sum(x)
-    return normed_row
 
 
 def write_input_file(
@@ -84,106 +82,9 @@ def write_input_file(
     random_state=None,
     size=33,  # max ~200 across all submodes (docs say 100)
     alpha=0.99,
+    seed=None,
 ):
-    fractions = np.array(fractions)
-    fractions[fractions < tol] = 0.0
-    fractions = normalize_row_l1(fractions)
-
-    # sample points and their probabilities from log-normal
-    s_radii = []
-    c_radii = []
-    m_fracs = []
-    for mu, sigma, frac in zip(means, stds, fractions):
-        # lognormal(mean=mean, sigma=std, size=100)
-        if frac >= tol:
-
-            s = sigma
-            # scale: such that np.mean(samples) = mu (approx.)
-            # scale = mu / np.sqrt(np.exp(1))
-
-            scale = mu
-
-            # s_mode_radii = lognorm.rvs(
-            #     s, scale=scale, size=size, random_state=random_state
-            # )
-
-            # alphas = np.linspace(0, 1, size + 2)
-            # # remove first and last (avoid 0 or near-zero for log-normal)
-            # alphas = alphas[1:-1]
-            # s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
-
-            running_size = size
-            n_radii = 0
-            s_mode_radii = None
-            while n_radii <= size:
-                s_mode_previous = s_mode_radii
-                alphas = [1 / (running_size), (running_size - 1) / running_size]
-                s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
-                s_mode_radii = np.linspace(s_mode_low, s_mode_upp, running_size)
-
-                # cutoff = lognorm.ppf(alpha, s, scale=scale)
-                # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
-
-                # by choosing the median rather than the mean after applying the scaling
-                # then the max ratio between any two particles in a system of 3
-                # distributions isn't a hard constraint
-
-                # median = lognorm.median(s, scale=scale)
-
-                # make it relative to mu so I know the exact max ratios
-                max_ratio = 16
-                upp = np.sqrt(max_ratio)  # e.g. 4
-                low = 1 / upp  # e.g. 0.25
-                s_mode_radii = s_mode_radii[
-                    np.all(
-                        [s_mode_radii > low * scale, s_mode_radii < upp * scale],
-                        axis=0,
-                    )
-                ]
-                n_radii = len(s_mode_radii)
-                running_size += 1
-            s_mode_radii = s_mode_previous
-
-            probs = lognorm.pdf(s_mode_radii, s, scale=scale)
-
-            normed_probs = normalize_row_l1(probs)
-            m_mode_fracs = normed_probs * frac
-
-            # # plot radii and sampled histogram from the new (discrete) distribution
-            # check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
-            # df = pd.DataFrame(
-            #     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
-            # )
-            # fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
-
-            # fig.add_histogram(x=check_samples, histnorm="probability")
-            # fig.add_annotation(
-            #     xref="paper",
-            #     yref="paper",
-            #     x=0.9,
-            #     y=0.9,
-            #     text=f"scale={scale:.3f}, s={s:.3f}",
-            #     showarrow=False,
-            # )
-            # fig.show()
-            # print(
-            #     f"scale={scale}, s={s}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
-            # )
-
-            # remove submodes close to zero
-            # (might not have any effect with low enough max_ratio relative to tol)
-            keep_ids = m_mode_fracs > tol
-
-            probs = probs[keep_ids]
-            normed_probs = normed_probs[keep_ids]
-            m_mode_fracs = m_mode_fracs[keep_ids]
-            s_mode_radii = s_mode_radii[keep_ids]
-
-            c_mode_radii = 20 * s_mode_radii
-
-            s_radii.append(s_mode_radii)
-            c_radii.append(c_mode_radii)
-            m_fracs.append(m_mode_fracs)
+    s_radii, c_radii, m_fracs = prep_input_data(means, stds, fractions, tol, size)
 
     # working directory and path finagling
     cwd = os.getcwd()
@@ -193,7 +94,7 @@ def write_input_file(
     Path(data_dir).mkdir(exist_ok=True, parents=True)
 
     write_proprietary_input_file(
-        uid, particles, s_radii, c_radii, m_fracs, data_dir=data_dir
+        uid, particles, s_radii, c_radii, m_fracs, data_dir=data_dir, seed=seed
     )
 
     return cwd, util_dir, data_dir
@@ -283,4 +184,39 @@ def read_vol_frac(uid, cwd, data_dir, verbose=True):
 #     normed_row = [1.0]
 # vol_frac_line = [l if LINE_KEY in l else "" for l in lines]
 # vol_frac_line = "".join(vol_frac_line)  # blank strings go away
+
+# scale: such that np.mean(samples) = mu (approx.)
+# scale = mu / np.sqrt(np.exp(1))
+
+# s_mode_radii = lognorm.rvs(
+#     s, scale=scale, size=size, random_state=random_state
+# )
+
+# alphas = np.linspace(0, 1, size + 2)
+# # remove first and last (avoid 0 or near-zero for log-normal)
+# alphas = alphas[1:-1]
+# s_mode_radii = lognorm.ppf(alphas, s, scale=scale)
+
+# lognormal(mean=mean, sigma=std, size=100)
+
+# # plot radii and sampled histogram from the new (discrete) distribution
+# check_samples = choices(s_mode_radii, weights=normed_probs, k=100000)
+# df = pd.DataFrame(
+#     dict(s_mode_radii=s_mode_radii, normed_probs=normed_probs)
+# )
+# fig = px.scatter(df, x="s_mode_radii", y="normed_probs")
+
+# fig.add_histogram(x=check_samples, histnorm="probability")
+# fig.add_annotation(
+#     xref="paper",
+#     yref="paper",
+#     x=0.9,
+#     y=0.9,
+#     text=f"scale={scale:.3f}, s={s:.3f}",
+#     showarrow=False,
+# )
+# fig.show()
+# print(
+#     f"scale={scale}, s={s}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
+# )
 
