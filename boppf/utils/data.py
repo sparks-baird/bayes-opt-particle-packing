@@ -3,6 +3,7 @@ from itertools import permutations, product
 import pandas as pd
 import numpy as np
 from os.path import join
+from scipy.stats import lognorm
 
 # rename the columns
 mean_mapper = {f"Mean_Particle_Size_#{i}": f"mu{i}" for i in range(1, 4)}
@@ -156,6 +157,78 @@ def gen_symmetric_trials(data, component_slot_names, composition_slot_names):
         comb_data.append({**component_dict, **composition_dict})
 
     return comb_data
+
+
+def get_s_mode_radii(size, s, scale):
+    running_size = size
+    n_radii = 0
+    s_mode_radii = None
+    while n_radii <= size:
+        s_mode_previous = s_mode_radii
+        alphas = [1 / (running_size), (running_size - 1) / running_size]
+        s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
+        s_mode_radii = np.linspace(s_mode_low, s_mode_upp, running_size)
+
+        # cutoff = lognorm.ppf(alpha, s, scale=scale)
+        # s_mode_radii = s_mode_radii[s_mode_radii < cutoff]
+
+        # by choosing the median rather than the mean after applying the scaling
+        # then the max ratio between any two particles in a system of 3
+        # distributions isn't a hard constraint
+
+        # median = lognorm.median(s, scale=scale)
+
+        # make it relative to mu so I know the exact max ratios
+        max_ratio = 16
+        upp = np.sqrt(max_ratio)  # e.g. 4
+        low = 1 / upp  # e.g. 0.25
+        s_mode_radii = s_mode_radii[
+            np.all([s_mode_radii > low * scale, s_mode_radii < upp * scale], axis=0,)
+        ]
+        n_radii = len(s_mode_radii)
+        running_size += 1
+    s_mode_radii = s_mode_previous
+    return s_mode_radii
+
+
+def normalize_row_l1(x):
+    normed_row = x / sum(x)
+    return normed_row
+
+
+def prep_input_data(means, stds, fractions, tol, size):
+    fractions = np.array(fractions)
+    fractions[fractions < tol] = 0.0
+    fractions = normalize_row_l1(fractions)
+
+    # sample points and their probabilities from log-normal
+    s_radii = []
+    c_radii = []
+    m_fracs = []
+    for mu, sigma, frac in zip(means, stds, fractions):
+        if frac >= tol:
+            s = sigma
+            scale = mu
+            s_mode_radii = get_s_mode_radii(size, s, scale)
+            probs = lognorm.pdf(s_mode_radii, s, scale=scale)
+            normed_probs = normalize_row_l1(probs)
+            m_mode_fracs = normed_probs * frac
+
+            # remove submodes close to zero
+            # (might not have any effect with low enough max_ratio relative to tol)
+            keep_ids = m_mode_fracs > tol
+
+            probs = probs[keep_ids]
+            normed_probs = normed_probs[keep_ids]
+            m_mode_fracs = m_mode_fracs[keep_ids]
+            s_mode_radii = s_mode_radii[keep_ids]
+
+            c_mode_radii = 20 * s_mode_radii
+
+            s_radii.append(s_mode_radii)
+            c_radii.append(c_mode_radii)
+            m_fracs.append(m_mode_fracs)
+    return s_radii, c_radii, m_fracs
 
 
 # %% Code Graveyard
