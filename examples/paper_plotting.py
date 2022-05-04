@@ -26,6 +26,7 @@ from boppf.utils.plotting import (
     my_std_optimization_trace_single_method_plotly,
     df_to_rounded_csv,
     plot_and_save,
+    plot_distribution,
     to_plotly,
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
@@ -236,6 +237,22 @@ for kwargs in COMBS_KWARGS:
     if remove_composition_degeneracy:
         last_frac = frac_names[-1]
         par_df[last_frac] = 1.0 - par_df[frac_names[0:-1]].sum(axis=1)
+
+    # distribution plots
+    for seed, (_, sub_df) in zip(random_seeds, par_df.iterrows()):
+        fig_dir = path.join(
+            fig_dir_base,
+            f"n_sobol={n_sobol},n_bayes={n_bayes}",
+            f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
+            f"seed={seed}",
+        )
+        fig = plot_distribution(
+            sub_df[mean_names].values,
+            sub_df[std_names].values,
+            sub_df[frac_names].values,
+        )
+        plot_and_save(path.join(fig_dir, "dist"), fig, update_legend=True)
+
     best_par_dfs.append(par_df)
     result_df = pd.DataFrame(
         dict(
