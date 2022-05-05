@@ -122,7 +122,7 @@ for kwargs in COMBS_KWARGS:
         Path(fig_dir).mkdir(exist_ok=True, parents=True)
 
         plot_and_save(
-            path.join(fig_dir, f"best_objective_plot_{seed}"), fig, update_legend=True
+            path.join(fig_dir, "best_objective_plot"), fig, update_legend=True
         )
 
         metric = ax_client.objective_name
@@ -131,7 +131,7 @@ for kwargs in COMBS_KWARGS:
         ax_feature_importances.append(model.feature_importances(metric))
         fig = plot_feature_importance_by_feature_plotly(model)
 
-        fig_path = path.join(fig_dir, f"feature_importances_{seed}")
+        fig_path = path.join(fig_dir, "feature_importances")
         plot_and_save(fig_path, fig, mpl_kwargs=dict(size=12))
 
         x_range = [0.525, 0.8]
@@ -140,14 +140,14 @@ for kwargs in COMBS_KWARGS:
         fig = interact_cross_validation_plotly(cv)
         fig.update_xaxes(title_text="Actual Vol. Packing Fraction", range=x_range)
         fig.update_yaxes(title_text="Predicted Vol. Packing Fraction", range=y_range)
-        fig_path = path.join(fig_dir, f"cross_validate_{seed}")
+        fig_path = path.join(fig_dir, "cross_validate")
         plot_and_save(
             fig_path, fig, mpl_kwargs=dict(width_inches=4.0, size=20), show=False
         )
         # TODO: ask about feature covariance matrix on Ax GitHub
         slice_dir = path.join(fig_dir, "slice")
         Path(slice_dir).mkdir(exist_ok=True, parents=True)
-        fig_path = path.join(slice_dir, f"slice_{seed}")
+        fig_path = path.join(slice_dir, "slice")
         param_names = experiment.parameters.keys()
 
         # can take a while to loop through, so don't plot for dummy
@@ -165,7 +165,7 @@ for kwargs in COMBS_KWARGS:
                     ),  # for 5x5 grid
                     show=False,
                 )
-        fig_path = path.join(fig_dir, f"interact_slice_{seed}")
+        fig_path = path.join(fig_dir, "interact_slice")
         fig = interact_slice_plotly(model)
         plot_and_save(
             fig_path,
@@ -174,7 +174,7 @@ for kwargs in COMBS_KWARGS:
             show=False,
         )
 
-        fig_path = path.join(fig_dir, f"contour_2d_{seed}")
+        fig_path = path.join(fig_dir, "contour_2d")
         fig = to_plotly(
             ax_client.get_contour_plot(
                 param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
@@ -188,7 +188,7 @@ for kwargs in COMBS_KWARGS:
         )
 
         if interact_contour:
-            fig_path = path.join(fig_dir, f"interact_contour_2d_{seed}")
+            fig_path = path.join(fig_dir, "interact_contour_2d")
             fig = interact_contour_plotly(model=model, metric_name=metric)
             plot_and_save(fig_path, fig, show=False)
 
@@ -199,7 +199,7 @@ for kwargs in COMBS_KWARGS:
             title_text="Percent higher than experimental average"
         )
         fig.update_layout(title_text="")
-        fig_path = path.join(fig_dir, f"marginal_effects_{seed}")
+        fig_path = path.join(fig_dir, "marginal_effects")
         plot_and_save(
             fig_path,
             fig,
