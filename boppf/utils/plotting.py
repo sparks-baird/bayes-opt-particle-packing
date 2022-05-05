@@ -338,19 +338,20 @@ def plot_distribution(means, stds, fractions, tol=1e-6, size=33):
     probs = np.sum([f(samples) for f in fns], axis=0)
 
     dfs = []
+    n_modes = len(s_radii)
     for i, (s_mode_radii, m_mode_fracs) in enumerate(zip(s_radii, m_fracs)):
         mode = i + 1
+        mode_str = f"scale={means[i]:.2f},s={stds[i]:.2f},p={np.sum(m_mode_fracs):.2f}"
+        if mode == n_modes:
+            mode_str = "<br>".join([mode_str, *[""] * (3 - n_modes)])
         df = pd.DataFrame(
-            {
-                "mode": f"{mode} (scale={means[i]:.2f},s={stds[i]:.2f},p={np.sum(m_mode_fracs):.2f})",
-                "s_radii": s_mode_radii,
-                "m_fracs": m_mode_fracs,
-            }
+            {"mode": mode_str, "s_radii": s_mode_radii, "m_fracs": m_mode_fracs,}
         )
         dfs.append(df)
     main_df = pd.concat(dfs, axis=0, join="inner")
 
     fig = px.scatter(main_df, x="s_radii", y="m_fracs", color="mode")
+    fig.update_layout(legend=dict(title_text=""))
     fig.add_scatter(
         x=samples, y=probs, name="interpolated and summed", line=dict(color="black")
     )
