@@ -56,7 +56,7 @@ Define how many pseudo-random initial Sobol points to generate (`n_sobol`, typic
 ```python
 n_sobol = 10
 n_bayes = 40
-particles = int(25e4)
+particles = int(2.5e4)
 ```
 
 Instantiate the `BOPPF` class, and call the `optimize` method.
