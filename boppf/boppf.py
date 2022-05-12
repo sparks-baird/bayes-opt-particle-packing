@@ -1,6 +1,7 @@
 """Perform Bayesian optimization on the particle packing simulation parameters."""
 from os import getcwd, path
 from pathlib import Path
+from typing import Optional
 
 import torch
 from boppf.utils.ax import optimize_ppf
@@ -13,9 +14,9 @@ class BOPPF:
     def __init__(
         self,
         dummy=False,
-        particles=int(2.5e4),
-        n_sobol=None,
-        n_bayes=100,
+        particles: Optional[int] = int(2.5e4),
+        n_sobol: Optional[int] = None,
+        n_bayes: int = 100,
         save_dir="results",
         savename="experiment.json",
         max_parallel="cpu_count",
@@ -29,6 +30,9 @@ class BOPPF:
         remove_scaling_degeneracy=False,
         use_order_constraint=False,
         ray_verbosity=3,
+        multi_fidelity: bool = False,
+        lower_particles: Optional[int] = None,
+        upper_particles: Optional[int] = None,
     ) -> None:
         self.particles = particles
         self.n_sobol = n_sobol
@@ -47,8 +51,16 @@ class BOPPF:
         if dummy:
             save_dir = path.join(save_dir, "dummy")
 
+        if use_saas and multi_fidelity:
+            raise NotImplementedError(
+                "SAASBO (use_saas) and multi_fidelity not compatible."
+            )
+
         if use_saas:
             save_dir = path.join(save_dir, "saas")
+
+        if multi_fidelity:
+            save_dir = path.join(save_dir, "multi_fidelity")
 
         save_dir = path.join(
             save_dir,
@@ -76,6 +88,25 @@ class BOPPF:
         self.use_order_constraint = use_order_constraint
         self.ray_verbosity = ray_verbosity
 
+        self.multi_fidelity = multi_fidelity
+
+        if not multi_fidelity and (
+            lower_particles is not None or upper_particles is not None
+        ):
+            raise ValueError(
+                "lower_particles and upper_particles should be None if not using multi-fidelity optimization."
+            )
+        if multi_fidelity and lower_particles is None:
+            self.lower_particles = int(2.5e4)
+        else:
+            assert isinstance(lower_particles, int), "lower_particles is not int type"
+            self.lower_particles = lower_particles
+        if multi_fidelity and upper_particles is None:
+            self.upper_particles = int(2.5e5)
+        else:
+            assert isinstance(upper_particles, int), "upper_particles is not int type"
+            self.upper_particles = upper_particles
+
     def optimize(self, X_train, y_train, return_ax_client=False):
         # %% optimization
         self.ax_client, best_parameters, mean, covariance = optimize_ppf(
@@ -94,6 +125,9 @@ class BOPPF:
             remove_scaling_degeneracy=self.remove_scaling_degeneracy,
             use_order_constraint=self.use_order_constraint,
             ray_verbosity=self.ray_verbosity,
+            multi_fidelity=self.multi_fidelity,
+            lower_particles=self.lower_particles,
+            upper_particles=self.upper_particles,
         )
 
         if return_ax_client:

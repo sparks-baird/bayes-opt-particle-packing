@@ -1,5 +1,6 @@
 from copy import copy
 from itertools import permutations, product
+from typing import Optional
 import pandas as pd
 import numpy as np
 from os.path import join
@@ -14,6 +15,7 @@ std_names = list(std_mapper.values())
 frac_names = list(frac_mapper.values())
 var_names = mean_names + std_names + frac_names
 target_name = "vol_frac"
+fidelity_name = "sq_particles"
 mapper = {**mean_mapper, **std_mapper, **frac_mapper, "Packing_Fraction": target_name}
 
 SPLIT = "_div_"
@@ -49,7 +51,13 @@ def load_data(fname="packing-fraction.csv", folder="data"):
     return X_train, y_train
 
 
-def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy=False):
+def get_parameters(
+    remove_composition_degeneracy=True,
+    remove_scaling_degeneracy=False,
+    multi_fidelity: bool = False,
+    lower_particles: Optional[int] = None,
+    upper_particles: Optional[int] = None,
+):
     # TODO: add kwargs for the other two irreducible search spaces
     type = "range"
     mean_bnd = [1.0, 5.0]
@@ -79,6 +87,9 @@ def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy
         mean_names_out,
         std_names_out,
         remove_composition_degeneracy=remove_composition_degeneracy,
+        multi_fidelity=multi_fidelity,
+        lower_particles=lower_particles,
+        upper_particles=upper_particles,
     )
 
     _, generous_parameters = _get_parameters(
@@ -89,6 +100,9 @@ def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy
         mean_names_out,
         std_names_out,
         remove_composition_degeneracy=remove_composition_degeneracy,
+        multi_fidelity=multi_fidelity,
+        lower_particles=lower_particles,
+        upper_particles=upper_particles,
     )
     return (
         subfrac_names,
@@ -109,6 +123,9 @@ def _get_parameters(
     mean_names_out,
     std_names_out,
     remove_composition_degeneracy=True,
+    multi_fidelity: bool = False,
+    lower_particles: Optional[int] = None,
+    upper_particles: Optional[int] = None,
 ):
     mean_pars = [
         {"name": nm, "type": type, "bounds": mean_bnd, "value_type": "float"}
@@ -129,6 +146,26 @@ def _get_parameters(
         parameters = mean_pars + std_pars + frac_pars[:-1]
     else:
         parameters = mean_pars + std_pars + frac_pars
+
+    if multi_fidelity:
+        assert isinstance(lower_particles, int), "lower_particles is not int type"
+        assert isinstance(upper_particles, int), "upper_particles is not int type"
+        # runtime scales with square of number of particles. Easy workaround using
+        # reparameterization instead of implementing a custom cost function.
+        lower_sq_particles = int(lower_particles ** 2)
+        upper_sq_particles = int(upper_particles ** 2)
+        bnds = [lower_sq_particles, upper_sq_particles]
+        fidelity_pars = [
+            {
+                "name": fidelity_name,
+                "type": "range",
+                "value_type": "int",
+                "bounds": bnds,
+                "is_fidelity": True,
+                "target_value": upper_sq_particles,
+            }
+        ]
+        parameters = parameters + fidelity_pars
     return subfrac_names, parameters
 
 

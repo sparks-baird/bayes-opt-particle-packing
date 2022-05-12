@@ -3,6 +3,7 @@ import logging
 from os import getcwd, path
 from pathlib import Path
 import time
+from typing import Optional
 import pandas as pd
 import ray
 from sklearn.preprocessing import normalize
@@ -19,7 +20,14 @@ from ray import tune
 from ray.tune import report
 from ray.tune.suggest.ax import AxSearch
 
-from boppf.utils.data import MU3, SPLIT, get_parameters, frac_names, target_name
+from boppf.utils.data import (
+    MU3,
+    SPLIT,
+    get_parameters,
+    frac_names,
+    target_name,
+    fidelity_name,
+)
 
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
@@ -49,6 +57,9 @@ def optimize_ppf(
     remove_scaling_degeneracy=False,
     use_order_constraint=False,
     ray_verbosity=3,
+    multi_fidelity: bool = False,
+    lower_particles: Optional[int] = None,
+    upper_particles: Optional[int] = None,
 ):
     n_train = X_train.shape[0]
 
@@ -63,6 +74,9 @@ def optimize_ppf(
     ) = get_parameters(
         remove_composition_degeneracy=remove_composition_degeneracy,
         remove_scaling_degeneracy=remove_scaling_degeneracy,
+        multi_fidelity=multi_fidelity,
+        lower_particles=lower_particles,
+        upper_particles=upper_particles,
     )
 
     # TODO: make compatible with additional irreducible constraints
@@ -108,6 +122,9 @@ def optimize_ppf(
                 "optimizer_options": {"options": {"batch_limit": 1}}
             },
         }
+    elif multi_fidelity:
+        bayes_model = Models.GPKG
+        kwargs = {}
     else:
         bayes_model = Models.GPEI
         kwargs = {}
@@ -225,11 +242,18 @@ def optimize_ppf(
                 parameters[orig_name] = parameters[name] * MU3  # NOTE: hardcoded
                 parameters["mu3"] = MU3
 
+        if multi_fidelity:
+            sim_particles = int(np.round(np.sqrt(parameters[fidelity_name])))
+        else:
+            sim_particles = particles
+
         means = np.array([float(parameters.get(name)) for name in orig_mean_names])
         stds = np.array([float(parameters.get(name)) for name in orig_std_names])
         fractions = np.array([float(parameters.get(name)) for name in frac_names[:-1]])
         uid = str(uuid4())[0:8]  # 0:8 to shorten the long hash ID, 8 is arbitrary
-        vol_frac = particle_packing_simulation(uid, particles, means, stds, fractions)
+        vol_frac = particle_packing_simulation(
+            uid, sim_particles, means, stds, fractions
+        )
 
         d = {target_name: vol_frac}  # can't specify SEM perhaps?
         report(**d)

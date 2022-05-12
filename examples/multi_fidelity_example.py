@@ -1,91 +1,55 @@
-from ax.service.ax_client import AxClient
-from botorch.test_functions.multi_fidelity import AugmentedHartmann
-from ax.modelbridge.generation_strategy import GenerationStep, GenerationStrategy
-from ax.modelbridge.registry import Models
-from botorch.acquisition import qExpectedImprovement
+"""Multi-fidelity experiments."""
+import numpy as np
+from psutil import cpu_count
 import torch
+from boppf.boppf import BOPPF
+from time import time
 
-problem = AugmentedHartmann(negate=True)
+dummy = True
 
+device_str = "cuda"  # "cuda" or "cpu"
+use_saas = False
+multi_fidelity = True
 
-def objective(parameters):
-    # x7 is the fidelity
-    x = torch.tensor([parameters.get(f"x{i+1}") for i in range(7)])
-    return {"f": (problem(x).item(), 0.0)}
+random_seed = 11
 
+if dummy:
+    # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
+    # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
+    torch.cuda.empty_cache()
+    n_sobol = 1
+    n_bayes = 16
+    lower_particles = int(2.5e1)
+    upper_particles = int(2.5e2)
+    max_parallel = 2
+else:
+    n_sobol = 10
+    n_bayes = 100 - n_sobol
+    lower_particles = int(2.5e4)
+    upper_particles = int(2.5e5)
+    max_parallel = max(1, cpu_count(logical=False) - 1)
 
-n_sobol = 16
-max_parallel = 5
-device_str = "cuda" if torch.cuda.is_available() else "cpu"
-torch_device = torch.device(device_str)
-gs = GenerationStrategy(
-    steps=[
-        GenerationStep(
-            model=Models.SOBOL,
-            num_trials=n_sobol,
-            max_parallelism=max_parallel,
-            model_kwargs={"seed": 999},
-        ),
-        # 2. Bayesian optimization step (requires data obtained from previous phase and learns
-        # from all data available at the time of each new candidate generation call)
-        GenerationStep(
-            model=Models.GPKG,
-            num_trials=-1,  # No limitation on how many trials should be produced from this step
-            model_kwargs={
-                "fit_out_of_design": True,
-                "torch_device": torch_device,
-                "torch_dtype": torch.double,
-                "botorch_acqf_class": qExpectedImprovement,
-                "acquisition_options": {
-                    "optimizer_options": {"options": {"batch_limit": 1}}
-                },
-            },
-            # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
-            max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
-            # More on parallelism vs. required samples in BayesOpt:
-            # https://ax.dev/docs/bayesopt.html#tradeoff-between-parallelism-and-total-number-of-trials
-        ),
-    ]
+boppf = BOPPF(
+    dummy=dummy,
+    n_sobol=n_sobol,
+    n_bayes=n_bayes,
+    particles=None,
+    max_parallel=max_parallel,
+    torch_device=torch.device(device_str),
+    use_saas=use_saas,
+    multi_fidelity=multi_fidelity,
+    lower_particles=lower_particles,
+    upper_particles=upper_particles,
+    remove_composition_degeneracy=False,
+    remove_scaling_degeneracy=False,
+    use_order_constraint=False,
+    debug=False,
 )
 
-
-ax_client = AxClient(generation_strategy=gs)
-ax_client.create_experiment(
-    name="hartmann_mf_experiment",
-    parameters=[
-        {"name": "x1", "type": "range", "bounds": [0.0, 1.0],},
-        {"name": "x2", "type": "range", "bounds": [0.0, 1.0],},
-        {"name": "x3", "type": "range", "bounds": [0.0, 1.0],},
-        {"name": "x4", "type": "range", "bounds": [0.0, 1.0],},
-        {"name": "x5", "type": "range", "bounds": [0.0, 1.0],},
-        {"name": "x6", "type": "range", "bounds": [0.0, 1.0],},
-        {
-            "name": "x7",
-            "type": "range",
-            "bounds": [0.0, 1.0],
-            "is_fidelity": True,
-            "target_value": 1.0,
-        },
-    ],
-    objective_name="f",
+t0 = time()
+best_parameters, means, covariances, ax_client = boppf.optimize(
+    np.array([]), np.array([]), return_ax_client=True
 )
-# Initial sobol samples
-for i in range(16):
-    parameters, trial_index = ax_client.get_next_trial()
-    ax_client.complete_trial(trial_index=trial_index, raw_data=objective(parameters))
-
-# KGBO
-for i in range(6):
-    q_p, q_t = [], []
-    # Simulate batches
-    for q in range(4):
-        parameters, trial_index = ax_client.get_next_trial()
-        q_p.append(parameters)
-        q_t.append(trial_index)
-    for q in range(4):
-        pi = q_p[q]
-        ti = q_t[q]
-        ax_client.complete_trial(trial_index=ti, raw_data=objective(pi))
+print("elapsed (s): ", time() - t0)
 
 1 + 1
-
