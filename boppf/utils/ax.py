@@ -308,6 +308,8 @@ def optimize_ppf(
         return dt
 
     df["runtime"] = [get_runtime(trial) for trial in trials]
+    df["trial_start_datetime"] = [trial.time_run_started for trial in trials]
+    df["trial_complete_datetime"] = [trial.time_completed for trial in trials]
 
     # REVIEW: v0.2.5 should support when released, for now use stable as of 2022-04-16
     # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
