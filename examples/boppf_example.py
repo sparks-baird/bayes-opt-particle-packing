@@ -9,7 +9,7 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = False
+dummy = True
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
@@ -20,10 +20,10 @@ if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
     torch.cuda.empty_cache()
-    n_sobol = 1
-    n_bayes = 16
-    particles = 1000
-    n_train_keep = 100
+    n_sobol = 2
+    n_bayes = 1
+    particles = 100
+    n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
 else:
