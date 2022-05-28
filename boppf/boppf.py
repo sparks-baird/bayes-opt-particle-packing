@@ -96,15 +96,15 @@ class BOPPF:
             raise ValueError(
                 "lower_particles and upper_particles should be None if not using multi-fidelity optimization."
             )
+
         if multi_fidelity and lower_particles is None:
-            self.lower_particles = int(2.5e4)
+            self.lower_particles: Optional[int] = int(2.5e4)
         else:
-            assert isinstance(lower_particles, int), "lower_particles is not int type"
             self.lower_particles = lower_particles
+
         if multi_fidelity and upper_particles is None:
-            self.upper_particles = int(2.5e5)
+            self.upper_particles: Optional[int] = int(2.5e5)
         else:
-            assert isinstance(upper_particles, int), "upper_particles is not int type"
             self.upper_particles = upper_particles
 
     def optimize(self, X_train, y_train, return_ax_client=False):
