@@ -310,6 +310,9 @@ def optimize_ppf(
     df["runtime"] = [get_runtime(trial) for trial in trials]
     df["trial_start_datetime"] = [trial.time_run_started for trial in trials]
     df["trial_complete_datetime"] = [trial.time_completed for trial in trials]
+    t0 = trials[0].time_run_started
+    complete_datetime = [trial.time_completed for trial in trials]
+    df["time_elapsed"] = [(t - t0).total_seconds() for t in complete_datetime]
 
     # REVIEW: v0.2.5 should support when released, for now use stable as of 2022-04-16
     # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
