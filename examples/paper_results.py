@@ -11,11 +11,10 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = True
+dummy = False
 
 device_str = "cuda"  # "cuda" or "cpu"
 use_saas = False
-use_heteroskedastic = True
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -54,7 +53,6 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
             max_parallel=max_parallel,
             torch_device=torch.device(device_str),
             use_saas=use_saas,
-            use_heteroskedastic=use_heteroskedastic,
             data_augmentation=False,
             debug=debug,
             seed=seed,
@@ -76,3 +74,4 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
 #     remove_composition_degeneracy=True,
 #     use_order_constraint=False,
 # )
+
