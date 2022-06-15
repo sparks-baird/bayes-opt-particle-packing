@@ -26,6 +26,7 @@ from ax.modelbridge.registry import Models
 from ax.service.utils.instantiation import ObjectiveProperties
 
 from botorch.acquisition import qExpectedImprovement
+from botorch.models import HeteroskedasticSingleTaskGP
 
 logger = logging.getLogger(tune.__name__)
 logger.setLevel(
@@ -43,6 +44,7 @@ def optimize_ppf(
     max_parallel=cpu_count(logical=False),
     torch_device=torch.device("cuda"),
     use_saas=False,
+    use_heteroskedastic=False,
     seed=10,
     data_augmentation=False,
     remove_composition_degeneracy=True,
@@ -51,6 +53,9 @@ def optimize_ppf(
     ray_verbosity=3,
 ):
     n_train = X_train.shape[0]
+
+    if use_saas and use_heteroskedastic:
+        raise ValueError("use_saas or use_heteroskedastic, not both.")
 
     (
         subfrac_names,
@@ -108,6 +113,9 @@ def optimize_ppf(
                 "optimizer_options": {"options": {"batch_limit": 1}}
             },
         }
+    elif use_heteroskedastic:
+        bayes_model = HeteroskedasticSingleTaskGP
+        kwargs = {}
     else:
         bayes_model = Models.GPEI
         kwargs = {}
@@ -368,4 +376,3 @@ def get_combs(data_augmentation, std_names):
 #     index={**mean_mapper, **{v: k for k, v in mean_mapper.items()}},
 #     inplace=True,
 # )
-

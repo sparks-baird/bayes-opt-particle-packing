@@ -23,6 +23,7 @@ class BOPPF:
         debug=False,
         torch_device=torch.device("cuda"),
         use_saas=False,
+        use_heteroskedastic=False,
         seed=10,
         data_augmentation=False,
         remove_composition_degeneracy=True,
@@ -43,12 +44,16 @@ class BOPPF:
         self.max_parallel = max_parallel
         self.torch_device = torch_device
         self.use_saas = use_saas
+        self.use_heteroskedastic = use_heteroskedastic
 
         if dummy:
             save_dir = path.join(save_dir, "dummy")
 
         if use_saas:
             save_dir = path.join(save_dir, "saas")
+
+        if use_heteroskedastic:
+            save_dir = path.join(save_dir, "heteroskedastic")
 
         save_dir = path.join(
             save_dir,
@@ -88,6 +93,7 @@ class BOPPF:
             max_parallel=self.max_parallel,
             torch_device=self.torch_device,
             use_saas=self.use_saas,
+            use_heteroskedastic=self.use_heteroskedastic,
             seed=self.seed,
             data_augmentation=self.data_augmentation,
             remove_composition_degeneracy=self.remove_composition_degeneracy,
