@@ -1,56 +1,54 @@
-"""Multi-fidelity experiments."""
-import numpy as np
+"""Reproduce paper results."""
 from psutil import cpu_count
 import torch
-from boppf.boppf import BOPPF
-from time import time
 from tqdm import tqdm
+from boppf.boppf import BOPPF
 from boppf.utils.data import DUMMY_SEEDS, SEEDS
+from time import time
+import numpy as np
+from os import path
 
-dummy = False
+dummy = True
 
-device_str = "cuda"  # "cuda" or "cpu"
+device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False
-multi_fidelity = True
-
-random_seed = 11
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
     torch.cuda.empty_cache()
-    n_sobol = 1
-    n_bayes = 16
-    lower_particles = int(2.5e1)
-    upper_particles = int(2.5e2)
+    n_sobol = 2
+    n_bayes = 3
+    particles = 1000
     max_parallel = 2
+    debug = False
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
-    lower_particles = int(2.5e4)
-    upper_particles = int(2.5e5)
-    max_parallel = max(1, cpu_count(logical=False) - 1)
+    particles = int(2.5e5)
+    # save one CPU for my poor, overworked machine
+    max_parallel = max(1, cpu_count(logical=False))
+    debug = False
     random_seeds = SEEDS
 
 for seed in tqdm(random_seeds, postfix="seed"):
-    # change made to torch_device due to memory error
     boppf = BOPPF(
         dummy=dummy,
         n_sobol=n_sobol,
         n_bayes=n_bayes,
-        particles=None,
+        particles=particles,
         max_parallel=max_parallel,
-        torch_device=torch.device("cpu"),
+        torch_device=torch.device(device_str),
         use_saas=use_saas,
-        multi_fidelity=multi_fidelity,
-        lower_particles=lower_particles,
-        upper_particles=upper_particles,
+        data_augmentation=False,
+        debug=debug,
+        seed=seed,
+        ray_verbosity=0,
         remove_composition_degeneracy=False,
         remove_scaling_degeneracy=False,
         use_order_constraint=False,
-        debug=False,
-        seed=seed,
+        save_dir=path.join("results", "multi-fidelity-baseline"),
     )
 
     t0 = time()

@@ -140,10 +140,15 @@ dfs = ray.get(
 
 val_df = pd.concat(dfs, ignore_index=True)
 val_df.to_csv(
-    path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv")
+    path.join(
+        tab_dir_base,
+        f"val_results_unrounded_particles={particles},nvalreps={nvalreps}.csv",
+    )
 )
 df_to_rounded_csv(
-    val_df, save_dir=tab_dir_base, save_name=f"val_results_particles={particles}.csv"
+    val_df,
+    save_dir=tab_dir_base,
+    save_name=f"val_results_particles={particles},nvalreps={nvalreps}.csv",
 )
 
 
