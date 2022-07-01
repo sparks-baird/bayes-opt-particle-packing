@@ -13,8 +13,8 @@ X_train, y_train = load_data(fname=fname, folder=data_dir)
 
 dummy = False
 
-device_str = "cuda"  # "cuda" or "cpu"
-use_saas = False
+device_str = "cpu"  # "cuda" or "cpu"
+use_saas = True
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -37,7 +37,7 @@ else:
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     # save one CPU for my poor, overworked machine
-    max_parallel = max(1, cpu_count(logical=False))
+    max_parallel = 8 # max(1, cpu_count(logical=False))
     debug = False
     random_seeds = SEEDS
 
@@ -74,4 +74,3 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
 #     remove_composition_degeneracy=True,
 #     use_order_constraint=False,
 # )
-
