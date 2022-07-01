@@ -183,7 +183,10 @@ def get_s_mode_radii(size, s, scale):
         upp = np.sqrt(max_ratio)  # e.g. 4
         low = 1 / upp  # e.g. 0.25
         s_mode_radii = s_mode_radii[
-            np.all([s_mode_radii > low * scale, s_mode_radii < upp * scale], axis=0,)
+            np.all(
+                [s_mode_radii > low * scale, s_mode_radii < upp * scale],
+                axis=0,
+            )
         ]
         n_radii = len(s_mode_radii)
         running_size += 1
@@ -192,7 +195,12 @@ def get_s_mode_radii(size, s, scale):
 
 
 def normalize_row_l1(x):
-    normed_row = x / sum(x)
+    tot = sum(x)
+    normed_row = np.array([i / tot if i != 0.0 else 0.0 for i in x])
+    if not np.all(np.isfinite(normed_row)):
+        raise ValueError(
+            f"Received {x} as input. After normalizing, a non-finite value was found: {normed_row}"  # noqa: E501
+        )
     return normed_row
 
 
@@ -236,4 +244,3 @@ def prep_input_data(means, stds, fractions, tol, size):
 # generous_std_bnd = [std_low / mean_upp, std_upp / mean_low]
 # std_bnd = [lim / mu3 for lim in std_bnd]
 # std_names_out = [f"std1{SPLIT}mu3", f"std2{SPLIT}mu3", f"std3{SPLIT}mu3"]
-
