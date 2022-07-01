@@ -99,7 +99,7 @@ def optimize_ppf(
 
     if use_saas:
         bayes_model = Models.FULLYBAYESIAN
-        kwargs = {}
+        kwargs = {"disable_progbar": True}
     elif n_train + n_sobol + n_bayes > 2000:
         bayes_model = Models.BOTORCH_MODULAR
         kwargs = {
@@ -368,4 +368,3 @@ def get_combs(data_augmentation, std_names):
 #     index={**mean_mapper, **{v: k for k, v in mean_mapper.items()}},
 #     inplace=True,
 # )
-
