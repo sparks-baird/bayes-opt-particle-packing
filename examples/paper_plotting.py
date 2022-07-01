@@ -31,8 +31,9 @@ from boppf.utils.plotting import (
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 
-dummy = False
+dummy = True
 interact_contour = False
+use_saas = True
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -56,14 +57,24 @@ dir_base = "results"
 if dummy:
     dir_base = path.join(dir_base, "dummy")
 
+if use_saas:
+    dir_base = path.join(dir_base, "saas")
+
 target_lbl = "vol. packing fraction"
 optimization_direction = "maximize"
 
+fig_dir_base = "figures"
+tab_dir_base = "tables"
+
+if use_saas:
+    fig_dir_base = path.join(fig_dir_base, "saas")
+    tab_dir_base = path.join(tab_dir_base, "saas")
+
 fig_dir_base = path.join(
-    "figures", f"particles={particles}", f"max_parallel={max_parallel}"
+    fig_dir_base, f"particles={particles}", f"max_parallel={max_parallel}"
 )
 tab_dir_base = path.join(
-    "tables", f"particles={particles}", f"max_parallel={max_parallel}"
+    tab_dir_base, f"particles={particles}", f"max_parallel={max_parallel}"
 )
 
 dfs = []
@@ -343,4 +354,3 @@ for seed in random_seeds:
 # )
 # best_pred = best_pred[metric][0]
 # best_sem = best_sem[metric][metric][0]
-
