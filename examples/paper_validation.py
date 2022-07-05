@@ -22,6 +22,7 @@ import ray
 from boppf.utils.plotting import df_to_rounded_csv
 
 dummy = False
+use_saas = True
 interact_contour = False
 if dummy:
     n_sobol = 2
@@ -41,8 +42,16 @@ else:
     debug = False
     random_seeds = [10, 11, 12, 13, 14]
 
+tab_dir_base = "tables"
+
+if use_saas:
+    tab_dir_base = path.join(tab_dir_base, "saas")
+
 tab_dir_base = path.join(
-    "tables", f"particles={particles}", f"max_parallel={max_parallel}"
+    tab_dir_base,
+    f"particles={particles}",
+    f"max_parallel={max_parallel}",
+    f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 main_path = path.join(tab_dir_base, "main_df")
@@ -50,7 +59,7 @@ with open(main_path + ".pkl", "rb") as f:
     main_df = pickle.load(f)
 
 # overwrite
-particles = int(2.5e4)
+# particles = int(2.5e4)
 # particles = int(100)
 nvalreps = 50
 
@@ -83,7 +92,11 @@ def validate_prediction(kwargs, seed):
     vol_fracs = []
     for _ in range(nvalreps):
         vol_frac = particle_packing_simulation(
-            uid=uid, particles=particles, means=means, stds=stds, fractions=fractions,
+            uid=uid,
+            particles=particles,
+            means=means,
+            stds=stds,
+            fractions=fractions,
         )
         vol_fracs.append(vol_frac)
     avg_vol_frac = np.mean(vol_fracs)
@@ -168,4 +181,3 @@ df_to_rounded_csv(
 
 # stds.append(std)
 # means.append(avg)
-

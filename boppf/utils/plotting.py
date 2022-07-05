@@ -95,7 +95,7 @@ def my_plot_feature_importance_by_feature_plotly(
         caption: an HTML-formatted string to place at the bottom of the plot.
 
     Returns a go.Figure of feature importances.
-    
+
     Notes:
         Copyright (c) Facebook, Inc. and its affiliates.
 
@@ -345,7 +345,11 @@ def plot_distribution(means, stds, fractions, tol=1e-6, size=33):
         if mode == n_modes:
             mode_str = "<br>".join([mode_str, *[""] * (3 - n_modes)])
         df = pd.DataFrame(
-            {"mode": mode_str, "s_radii": s_mode_radii, "m_fracs": m_mode_fracs,}
+            {
+                "mode": mode_str,
+                "s_radii": s_mode_radii,
+                "m_fracs": m_mode_fracs,
+            }
         )
         dfs.append(df)
     main_df = pd.concat(dfs, axis=0, join="inner")
@@ -427,4 +431,3 @@ def plot_distribution(means, stds, fractions, tol=1e-6, size=33):
 #         if sample >= min(sr) and sample <= max(sr):
 #             prob += mf * lognorm.pdf(sample, s, scale=scale)
 #     probs.append(prob)
-

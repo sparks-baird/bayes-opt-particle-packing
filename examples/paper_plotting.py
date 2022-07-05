@@ -31,7 +31,7 @@ from boppf.utils.plotting import (
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 
-dummy = True
+dummy = False
 interact_contour = False
 use_saas = True
 if dummy:

@@ -7,6 +7,7 @@ from boppf.utils.plotting import plot_and_save
 
 dummy = False
 interact_contour = False
+use_saas = True
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -25,22 +26,33 @@ else:
     debug = False
     random_seeds = [10, 11, 12, 13, 14]
 
+fig_dir_base = "figures"
+tab_dir_base = "tables"
+
+# if dummy:
+#     fig_dir_base = path.join(fig_dir_base, "dummy")
+#     tab_dir_base = path.join(tab_dir_base, "dummy")
+
+if use_saas:
+    fig_dir_base = path.join(fig_dir_base, "saas")
+    tab_dir_base = path.join(tab_dir_base, "saas")
+
 fig_dir_base = path.join(
-    "figures",
+    fig_dir_base,
     f"particles={particles}",
     f"max_parallel={max_parallel}",
     f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 tab_dir_base = path.join(
-    "tables",
+    tab_dir_base,
     f"particles={particles}",
     f"max_parallel={max_parallel}",
     f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 # overwrite
-particles = int(2.5e4)
+# particles = int(2.5e4)
 nvalreps = 50
 
 mapper = dict(
@@ -49,7 +61,10 @@ mapper = dict(
     use_order_constraint="order",
 )
 val_df = pd.read_csv(
-    path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv",)
+    path.join(
+        tab_dir_base,
+        f"val_results_unrounded_particles={particles}.csv",
+    )
 ).rename(columns=mapper)
 
 lbls = []
@@ -110,4 +125,3 @@ plot_and_save(
 # tickangle=45,
 # title_font = {"size": 20},
 # title_standoff = 25
-

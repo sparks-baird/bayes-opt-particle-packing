@@ -206,8 +206,8 @@ def normalize_row_l1(x):
 
 def prep_input_data(means, stds, fractions, tol, size):
     fractions = np.array(fractions)
-    fractions[fractions < tol] = 0.0
     fractions = normalize_row_l1(fractions)
+    fractions[fractions < tol] = 0.0
 
     # sample points and their probabilities from log-normal
     s_radii = []
