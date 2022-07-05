@@ -1,0 +1,2 @@
+remove_scaling_degeneracy,remove_composition_degeneracy,use_order_constraint,mu1,mu2,mu3,std1,std2,std3,comp1,comp2,comp3,seed,vol_frac,std
+False,False,True,5.0,1.0,4.9999999999999964,0.7277416666920248,0.7277416666920554,1.0,1.0,0.5191016212127675,1.0,11,0.7515400000000001,0.01742206646755776
