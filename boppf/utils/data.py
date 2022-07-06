@@ -21,7 +21,7 @@ SPLIT = "_div_"
 SEEDS = list(range(10, 15))
 DUMMY_SEEDS = SEEDS[0:2]
 
-MU3 = 1.0
+MU3 = 2.5  # HACK: hardcoded
 
 combs = list(product([True, False], repeat=3))
 
@@ -60,7 +60,11 @@ def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy
     if remove_scaling_degeneracy:
         mean_low, mean_upp = mean_bnd
         generous_mean_bnd = [mean_low / mean_upp, mean_upp / mean_low]
-        mean_bnd = [lim / MU3 for lim in mean_bnd]
+        # mean_bnd = [lim / MU3 for lim in mean_bnd]
+        max_ratio = mean_upp / mean_low
+        half_max_ratio = max_ratio / 2
+        mean_bnd = [1.0 / half_max_ratio, half_max_ratio]
+
         mean_names_out = [f"mu1{SPLIT}mu3", f"mu2{SPLIT}mu3"]
 
         # NOTE: sigma should stay same to preserve log-normal distribution shape
@@ -183,10 +187,7 @@ def get_s_mode_radii(size, s, scale):
         upp = np.sqrt(max_ratio)  # e.g. 4
         low = 1 / upp  # e.g. 0.25
         s_mode_radii = s_mode_radii[
-            np.all(
-                [s_mode_radii > low * scale, s_mode_radii < upp * scale],
-                axis=0,
-            )
+            np.all([s_mode_radii > low * scale, s_mode_radii < upp * scale], axis=0,)
         ]
         n_radii = len(s_mode_radii)
         running_size += 1
