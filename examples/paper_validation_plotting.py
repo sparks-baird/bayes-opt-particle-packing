@@ -1,4 +1,5 @@
 from os import path
+from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
@@ -102,23 +103,36 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
     return fig_dir_base, df
 
 
+# return fig_dir_base to avoid local variable error (and alternative: more complex
+# refactor)
 fig_dir_base, df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False)
 fig_dir_base, saas_df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=True)
 
+df["type"] = "GPEI"
+saas_df["type"] = "SAAS"
+
+cat_df = pd.concat([df, saas_df])
+
 fig = px.scatter(
-    df,
-    x="lbl",
+    cat_df,
+    x="type",
     y="vol_frac",
+    facet_col="lbl",
+    color="type",
     error_y="std",
     labels=dict(vol_frac="Volume Fraction (greater is better)"),
 )
 
-fig.update_xaxes(title_text="Search Space Type")
+# fig.update_xaxes(title_text="Search Space Type")
+fig.update_xaxes(title_text="")
+fig.update_xaxes(showticklabels=False)
+fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
+Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
 plot_and_save(
     path.join(fig_dir_base, "val_results"),
     fig,
-    mpl_kwargs=dict(size=16, width_inches=4.0, height_inches=4.0),
+    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
     show=True,
 )
 
