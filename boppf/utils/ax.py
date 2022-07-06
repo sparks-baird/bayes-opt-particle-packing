@@ -117,6 +117,7 @@ def optimize_ppf(
         bayes_model = Models.UNIFORM  # not really Bayesian
         if n_sobol != 0:
             warn(f"n_sobol != 0 ({n_sobol}) but using random model")
+        kwargs = {}
     else:
         bayes_model = Models.GPEI
         kwargs = {}
@@ -129,15 +130,19 @@ def optimize_ppf(
         model_kwargs={"seed": seed},  # Any kwargs you want passed into the model
         model_gen_kwargs={},  # Any kwargs you want passed to `modelbridge.gen`
     )
-    bayes_step = GenerationStep(
-        model=bayes_model,
-        num_trials=-1,  # No limitation on how many trials should be produced from this step
-        model_kwargs={
+    if not use_random:
+        bayes_kwargs = {
             "fit_out_of_design": True,
             "torch_device": torch_device,
             "torch_dtype": torch.double,
-            **kwargs,
-        },
+        }
+    else:
+        bayes_kwargs = {"seed": seed}
+
+    bayes_step = GenerationStep(
+        model=bayes_model,
+        num_trials=-1,  # No limitation on how many trials should be produced from this step
+        model_kwargs={**bayes_kwargs, **kwargs},
         # model_gen_kwargs={"num_restarts": 5, "raw_samples": 128},
         max_parallelism=max_parallel,  # Parallelism limit for this step, often lower than for Sobol
         # More on parallelism vs. required samples in BayesOpt:
@@ -296,10 +301,15 @@ def optimize_ppf(
 
     # REVIEW: v0.2.5 should support when released, for now use stable as of 2022-04-16
     # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
-    pred = list(ax_client.get_model_predictions().values())
-    # pred = pred[n_train - 1 :]
-    df["vol_frac_pred"] = [p[target_name][0] for p in pred]
-    df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
+    if not use_random:
+        pred = list(ax_client.get_model_predictions().values())
+        # pred = pred[n_train - 1 :]
+        df["vol_frac_pred"] = [p[target_name][0] for p in pred]
+        df["vol_frac_sigma"] = [p[target_name][1] for p in pred]
+    else:
+        # take the raw measured values
+        df["vol_frac_pred"] = df["vol_frac"]
+        df["vol_frac_sigma"] = None
 
     Path("results").mkdir(exist_ok=True, parents=True)
     result_path = path.join(save_dir, "results.csv")
