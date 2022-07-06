@@ -1,5 +1,6 @@
 """Reproduce paper results."""
 from pprint import pprint
+from warnings import warn
 from psutil import cpu_count
 import torch
 from tqdm import tqdm
@@ -11,10 +12,11 @@ data_dir = "data"
 fname = "packing-fraction.csv"
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
-dummy = False
+dummy = True
 
 device_str = "cpu"  # "cuda" or "cpu"
-use_saas = True
+use_saas = False
+use_random = True
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -37,9 +39,13 @@ else:
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     # save one CPU for my poor, overworked machine
-    max_parallel = 8 # max(1, cpu_count(logical=False))
+    max_parallel = 8  # max(1, cpu_count(logical=False))
     debug = False
     random_seeds = SEEDS
+
+if use_random:
+    n_sobol = 0
+    warn("Overwriting n_sobol to 0 since use_random=True")
 
 for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
     for seed in tqdm(random_seeds, postfix="seed"):

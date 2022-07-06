@@ -3,6 +3,7 @@ import logging
 from os import getcwd, path
 from pathlib import Path
 import time
+from warnings import warn
 import pandas as pd
 import ray
 from sklearn.preprocessing import normalize
@@ -43,6 +44,7 @@ def optimize_ppf(
     max_parallel=cpu_count(logical=False),
     torch_device=torch.device("cuda"),
     use_saas=False,
+    use_random=False,
     seed=10,
     data_augmentation=False,
     remove_composition_degeneracy=True,
@@ -51,6 +53,9 @@ def optimize_ppf(
     ray_verbosity=3,
 ):
     n_train = X_train.shape[0]
+
+    if use_saas and use_random:
+        raise ValueError("Cannot use both SAAS and random")
 
     (
         subfrac_names,
@@ -108,6 +113,10 @@ def optimize_ppf(
                 "optimizer_options": {"options": {"batch_limit": 1}}
             },
         }
+    elif use_random:
+        bayes_model = Models.UNIFORM  # not really Bayesian
+        if n_sobol != 0:
+            warn(f"n_sobol != 0 ({n_sobol}) but using random model")
     else:
         bayes_model = Models.GPEI
         kwargs = {}
