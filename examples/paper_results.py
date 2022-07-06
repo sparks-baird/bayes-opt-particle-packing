@@ -9,14 +9,14 @@ from boppf.utils.data import DUMMY_SEEDS, SEEDS, COMBS_KWARGS, load_data
 from time import time
 
 data_dir = "data"
-fname = "packing-fraction.csv"
+fname = "packing-fraction.csv"  # not used
 X_train, y_train = load_data(fname=fname, folder=data_dir)
 
 dummy = True
 
 device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False
-use_random = True
+use_random = False
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -24,11 +24,11 @@ if dummy:
     torch.cuda.empty_cache()
     n_sobol = 2
     n_bayes = 3
-    particles = 1000
+    particles = 100
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
-    max_parallel = 2
+    max_parallel = 1
     debug = False
     random_seeds = DUMMY_SEEDS
 else:
@@ -59,10 +59,11 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
             max_parallel=max_parallel,
             torch_device=torch.device(device_str),
             use_saas=use_saas,
+            use_random=use_random,
             data_augmentation=False,
             debug=debug,
             seed=seed,
-            ray_verbosity=0,
+            ray_verbosity=2,
             **kwargs,
         )
 
