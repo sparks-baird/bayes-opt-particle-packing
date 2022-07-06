@@ -5,6 +5,8 @@ import plotly.express as px
 from boppf.utils.data import COMBS_KWARGS, DUMMY_SEEDS
 from boppf.utils.plotting import plot_and_save
 
+nvalreps = 50
+
 dummy = False
 interact_contour = False
 use_saas = True
@@ -26,78 +28,82 @@ else:
     debug = False
     random_seeds = [10, 11, 12, 13, 14]
 
-fig_dir_base = "figures"
-tab_dir_base = "tables"
 
-# if dummy:
-#     fig_dir_base = path.join(fig_dir_base, "dummy")
-#     tab_dir_base = path.join(tab_dir_base, "dummy")
+def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
 
-if use_saas:
-    fig_dir_base = path.join(fig_dir_base, "saas")
-    tab_dir_base = path.join(tab_dir_base, "saas")
+    fig_dir_base = "figures"
+    tab_dir_base = "tables"
 
-fig_dir_base = path.join(
-    fig_dir_base,
-    f"particles={particles}",
-    f"max_parallel={max_parallel}",
-    f"n_sobol={n_sobol},n_bayes={n_bayes}",
-)
+    # if dummy:
+    #     fig_dir_base = path.join(fig_dir_base, "dummy")
+    #     tab_dir_base = path.join(tab_dir_base, "dummy")
 
-tab_dir_base = path.join(
-    tab_dir_base,
-    f"particles={particles}",
-    f"max_parallel={max_parallel}",
-    f"n_sobol={n_sobol},n_bayes={n_bayes}",
-)
+    if use_saas:
+        fig_dir_base = path.join(fig_dir_base, "saas")
+        tab_dir_base = path.join(tab_dir_base, "saas")
 
-# overwrite
-# particles = int(2.5e4)
-nvalreps = 50
+    fig_dir_base = path.join(
+        fig_dir_base,
+        f"particles={particles}",
+        f"max_parallel={max_parallel}",
+        f"n_sobol={n_sobol},n_bayes={n_bayes}",
+    )
 
-mapper = dict(
-    remove_scaling_degeneracy="rm_scl",
-    remove_composition_degeneracy="rm_comp",
-    use_order_constraint="order",
-)
-val_df = pd.read_csv(
-    path.join(
+    tab_dir_base = path.join(
         tab_dir_base,
-        f"val_results_unrounded_particles={particles}.csv",
+        f"particles={particles}",
+        f"max_parallel={max_parallel}",
+        f"n_sobol={n_sobol},n_bayes={n_bayes}",
     )
-).rename(columns=mapper)
 
-lbls = []
-means = []
-stds = []
-for kwargs in COMBS_KWARGS:
-    remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
-    remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
-    use_order_constraint = kwargs["use_order_constraint"]
-    sub_df = val_df.query(
-        f"rm_comp == {remove_composition_degeneracy} and rm_scl == {remove_scaling_degeneracy} and order == {use_order_constraint}"
+    # overwrite
+    # particles = int(2.5e4)
+
+    mapper = dict(
+        remove_scaling_degeneracy="rm_scl",
+        remove_composition_degeneracy="rm_comp",
+        use_order_constraint="order",
     )
-    tmp_lbl = []
-    if remove_composition_degeneracy:
-        tmp_lbl.append("comp")
-    if remove_scaling_degeneracy:
-        tmp_lbl.append("size")
-    if use_order_constraint:
-        tmp_lbl.append("order")
-    if tmp_lbl == []:
-        lbl = "bounds<br>-only"
-    else:
-        lbl = "<br>".join(tmp_lbl)
+    val_df = pd.read_csv(
+        path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv",)
+    ).rename(columns=mapper)
 
-    mean = sub_df["vol_frac"].mean()
-    std = sub_df["vol_frac"].std()
+    lbls = []
+    means = []
+    stds = []
+    for kwargs in COMBS_KWARGS:
+        remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
+        remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
+        use_order_constraint = kwargs["use_order_constraint"]
+        sub_df = val_df.query(
+            f"rm_comp == {remove_composition_degeneracy} and rm_scl == {remove_scaling_degeneracy} and order == {use_order_constraint}"
+        )
+        tmp_lbl = []
+        if remove_composition_degeneracy:
+            tmp_lbl.append("comp")
+        if remove_scaling_degeneracy:
+            tmp_lbl.append("size")
+        if use_order_constraint:
+            tmp_lbl.append("order")
+        if tmp_lbl == []:
+            lbl = "bounds<br>-only"
+        else:
+            lbl = "<br>".join(tmp_lbl)
 
-    lbls.append(lbl)
-    means.append(mean)
-    stds.append(std)
+        mean = sub_df["vol_frac"].mean()
+        std = sub_df["vol_frac"].std()
 
-df = pd.DataFrame(dict(lbl=lbls, vol_frac=means, std=stds))
-df = df.sort_values(by="vol_frac", ascending=False)
+        lbls.append(lbl)
+        means.append(mean)
+        stds.append(std)
+
+    df = pd.DataFrame(dict(lbl=lbls, vol_frac=means, std=stds))
+    df = df.sort_values(by="vol_frac", ascending=False)
+    return fig_dir_base, df
+
+
+fig_dir_base, df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False)
+fig_dir_base, saas_df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=True)
 
 fig = px.scatter(
     df,
