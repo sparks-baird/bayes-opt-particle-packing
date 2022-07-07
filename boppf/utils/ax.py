@@ -20,7 +20,16 @@ from ray import tune
 from ray.tune import report
 from ray.tune.suggest.ax import AxSearch
 
-from boppf.utils.data import MU3, SPLIT, get_parameters, frac_names, target_name
+from boppf.utils.data import (
+    MU3,
+    SPLIT,
+    get_parameters,
+    frac_names,
+    target_name,
+    default_mean_bnd,
+    default_std_bnd,
+    default_frac_bnd,
+)
 
 from ax.modelbridge.generation_strategy import GenerationStrategy, GenerationStep
 from ax.modelbridge.registry import Models
@@ -241,6 +250,26 @@ def optimize_ppf(
         means = np.array([float(parameters.get(name)) for name in orig_mean_names])
         stds = np.array([float(parameters.get(name)) for name in orig_std_names])
         fractions = np.array([float(parameters.get(name)) for name in frac_names[:-1]])
+
+        eps = 0.000001
+        for mn, mn_name in zip(means, mean_names):
+            if default_mean_bnd[0] + eps > mn > default_mean_bnd[1] - eps:
+                raise ValueError(
+                    f"{mn_name} out of bounds. Expected to be within {default_mean_bnd}, received: {parameters[mn_name]}"
+                )
+
+        for std, std_name in zip(stds, std_names):
+            if default_std_bnd[0] + eps > std > default_std_bnd[1] - eps:
+                raise ValueError(
+                    f"{std_name} out of bounds. Expected to be within {default_std_bnd}, received: {parameters[std_name]}"
+                )
+
+        for frac, frac_name in zip(fractions, frac_names):
+            if default_frac_bnd[0] + eps > frac > default_frac_bnd[1] - eps:
+                raise ValueError(
+                    f"{frac_name} out of bounds. Expected to be within {default_frac_bnd}, received: {parameters[frac_name]}"
+                )
+
         uid = str(uuid4())[0:8]  # 0:8 to shorten the long hash ID, 8 is arbitrary
         vol_frac = particle_packing_simulation(uid, particles, means, stds, fractions)
 
@@ -259,7 +288,7 @@ def optimize_ppf(
     algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=max_parallel)
     tune.run(
         evaluate,
-        fail_fast=False,
+        fail_fast=True,
         num_samples=n_trials,
         search_alg=algo,
         verbose=ray_verbosity,  # Set this level to 1 to see status updates and to 2 to also see trial results.
