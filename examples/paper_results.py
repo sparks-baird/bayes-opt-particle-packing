@@ -63,7 +63,7 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
             data_augmentation=False,
             debug=debug,
             seed=seed,
-            ray_verbosity=2,
+            ray_verbosity=0,
             **kwargs,
         )
 
