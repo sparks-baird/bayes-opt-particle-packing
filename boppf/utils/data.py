@@ -22,6 +22,9 @@ SEEDS = list(range(10, 15))
 DUMMY_SEEDS = SEEDS[0:2]
 
 MU3 = 3.0  # HACK: hardcoded
+default_mean_bnd = [1.0, 5.0]
+default_std_bnd = [0.1, 1.0]
+default_frac_bnd = [0.0, 1.0]
 
 combs = list(product([True, False], repeat=3))
 
@@ -52,9 +55,9 @@ def load_data(fname="packing-fraction.csv", folder="data"):
 def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy=False):
     # TODO: add kwargs for the other two irreducible search spaces
     type = "range"
-    mean_bnd = [1.0, 5.0]
-    std_bnd = [0.1, 1.0]
-    frac_bnd = [0.0, 1.0]
+    mean_bnd = default_mean_bnd
+    std_bnd = default_std_bnd
+    frac_bnd = default_frac_bnd
     orig_mean_names = copy(mean_names)
     orig_std_names = copy(std_names)
     if remove_scaling_degeneracy:
@@ -163,11 +166,11 @@ def gen_symmetric_trials(data, component_slot_names, composition_slot_names):
     return comb_data
 
 
-def get_s_mode_radii(size, s, scale):
+def get_s_mode_radii(size, s, scale, max_running_size=10000):
     running_size = size
     n_radii = 0
     s_mode_radii = None
-    while n_radii <= size:
+    while n_radii <= size and running_size <= max_running_size:
         s_mode_previous = s_mode_radii
         alphas = [1 / (running_size), (running_size - 1) / running_size]
         s_mode_low, s_mode_upp = lognorm.ppf(alphas, s, scale=scale)
@@ -191,7 +194,14 @@ def get_s_mode_radii(size, s, scale):
         ]
         n_radii = len(s_mode_radii)
         running_size += 1
+
     s_mode_radii = s_mode_previous
+
+    if running_size > max_running_size:
+        raise ValueError(
+            f"running_size > {max_running_size}: {running_size}. Something probably wrong with input parameters. s: {s}, scale: {scale}, s_mode_radii: {s_mode_radii}."
+        )
+
     return s_mode_radii
 
 
