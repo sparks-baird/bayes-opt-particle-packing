@@ -24,11 +24,11 @@ if dummy:
     torch.cuda.empty_cache()
     n_sobol = 2
     n_bayes = 3
-    particles = 100
+    particles = 1000
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
-    max_parallel = 1
+    max_parallel = 2
     debug = False
     random_seeds = DUMMY_SEEDS
 else:
