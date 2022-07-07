@@ -167,7 +167,7 @@ def gen_symmetric_trials(data, component_slot_names, composition_slot_names):
 
 
 def get_s_mode_radii(size, s, scale, max_running_size=10000):
-    running_size = size
+    running_size = 1
     n_radii = 0
     s_mode_radii = None
     while n_radii <= size and running_size <= max_running_size:
