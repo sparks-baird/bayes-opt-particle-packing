@@ -21,7 +21,7 @@ SPLIT = "_div_"
 SEEDS = list(range(10, 15))
 DUMMY_SEEDS = SEEDS[0:2]
 
-MU3 = 2.5  # HACK: hardcoded
+MU3 = 3.0  # HACK: hardcoded
 
 combs = list(product([True, False], repeat=3))
 
@@ -60,10 +60,10 @@ def get_parameters(remove_composition_degeneracy=True, remove_scaling_degeneracy
     if remove_scaling_degeneracy:
         mean_low, mean_upp = mean_bnd
         generous_mean_bnd = [mean_low / mean_upp, mean_upp / mean_low]
-        # mean_bnd = [lim / MU3 for lim in mean_bnd]
-        max_ratio = mean_upp / mean_low
-        half_max_ratio = max_ratio / 2
-        mean_bnd = [1.0 / half_max_ratio, half_max_ratio]
+        mean_bnd = [lim / MU3 for lim in mean_bnd]
+        # max_ratio = mean_upp / mean_low
+        # half_max_ratio = max_ratio / 2
+        # mean_bnd = [1.0 / half_max_ratio, half_max_ratio]
 
         mean_names_out = [f"mu1{SPLIT}mu3", f"mu2{SPLIT}mu3"]
 
