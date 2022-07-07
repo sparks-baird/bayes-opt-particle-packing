@@ -233,8 +233,7 @@ def optimize_ppf(
             parameters.pop(last_component)
 
         if remove_scaling_degeneracy:
-            names = mean_names + std_names
-            for name in names:
+            for name in mean_names[0:2]:
                 orig_name = name.replace("_div_mu3", "")
                 parameters[orig_name] = parameters[name] * MU3  # NOTE: hardcoded
                 parameters["mu3"] = MU3
