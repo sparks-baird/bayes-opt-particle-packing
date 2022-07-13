@@ -288,7 +288,7 @@ def optimize_ppf(
     ax_client.save_to_json_file(filepath=path.join(save_dir, "experiment.json"))
     # restored_ax_client = AxClient.load_from_json_file(filepath=...)
 
-    df = ax_client.get_trials_data_frame().tail(n_trials)
+    df = ax_client.get_trials_data_frame().tail(n_trials).sort_index()
     trials = list(ax_client.experiment.trials.values())
     # df = pd.DataFrame([trial.arm.parameters for trial in trials])
 
@@ -309,10 +309,18 @@ def optimize_ppf(
 
     df["runtime"] = [get_runtime(trial) for trial in trials]
     df["trial_start_datetime"] = [trial.time_run_started for trial in trials]
-    df["trial_complete_datetime"] = [trial.time_completed for trial in trials]
+    df["trial_complete_datetime"] = [
+        trial.time_completed if hasattr(trial, "time_complete") else None
+        for trial in trials
+    ]
     t0 = trials[0].time_run_started
-    complete_datetime = [trial.time_completed for trial in trials]
-    df["time_elapsed"] = [(t - t0).total_seconds() for t in complete_datetime]
+    complete_datetime = [
+        trial.time_completed if hasattr(trial, "time_completed") else None
+        for trial in trials
+    ]
+    df["time_elapsed"] = [
+        (t - t0).total_seconds() if t is not None else None for t in complete_datetime
+    ]
 
     # REVIEW: v0.2.5 should support when released, for now use stable as of 2022-04-16
     # https://github.com/facebook/Ax/issues/771#issuecomment-1067118102
