@@ -33,7 +33,7 @@ from ax.plot.feature_importances import plot_feature_importance_by_feature_plotl
 
 dummy = False
 interact_contour = False
-use_saas = True
+use_saas = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
