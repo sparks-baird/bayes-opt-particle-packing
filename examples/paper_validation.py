@@ -22,7 +22,7 @@ import ray
 from boppf.utils.plotting import df_to_rounded_csv
 
 dummy = False
-use_saas = True
+use_saas = False
 interact_contour = False
 if dummy:
     n_sobol = 2
