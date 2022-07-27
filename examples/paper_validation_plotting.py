@@ -10,7 +10,7 @@ nvalreps = 50
 
 dummy = False
 interact_contour = False
-use_saas = True
+use_saas = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
@@ -111,7 +111,10 @@ fig_dir_base, saas_df = get_df(n_sobol, n_bayes, particles, max_parallel, use_sa
 df["type"] = "GPEI"
 saas_df["type"] = "SAAS"
 
-cat_df = pd.concat([df, saas_df])
+if use_saas:
+    cat_df = pd.concat([df, saas_df])
+else:
+    cat_df = df
 
 fig = px.scatter(
     cat_df,
