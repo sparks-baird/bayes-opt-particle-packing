@@ -190,7 +190,10 @@ def get_s_mode_radii(size, s, scale, max_running_size=10000):
         upp = np.sqrt(max_ratio)  # e.g. 4
         low = 1 / upp  # e.g. 0.25
         s_mode_radii = s_mode_radii[
-            np.all([s_mode_radii > low * scale, s_mode_radii < upp * scale], axis=0,)
+            np.all(
+                [s_mode_radii > low * scale, s_mode_radii < upp * scale],
+                axis=0,
+            )
         ]
         n_radii = len(s_mode_radii)
         running_size += 1
