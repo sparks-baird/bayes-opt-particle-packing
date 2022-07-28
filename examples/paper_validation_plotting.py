@@ -10,7 +10,8 @@ nvalreps = 50
 
 dummy = False
 interact_contour = False
-use_saas = True
+plot_both = False
+use_saas = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
