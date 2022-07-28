@@ -10,7 +10,10 @@ nvalreps = 50
 
 dummy = False
 interact_contour = False
+<<<<<<< HEAD
 plot_both = False
+=======
+>>>>>>> 984f533fb7417be029efe3e84dd1c0dd00057452
 use_saas = False
 if dummy:
     n_sobol = 2
@@ -112,7 +115,10 @@ fig_dir_base, saas_df = get_df(n_sobol, n_bayes, particles, max_parallel, use_sa
 df["type"] = "GPEI"
 saas_df["type"] = "SAAS"
 
-cat_df = pd.concat([df, saas_df])
+if use_saas:
+    cat_df = pd.concat([df, saas_df])
+else:
+    cat_df = df
 
 fig = px.scatter(
     cat_df,
