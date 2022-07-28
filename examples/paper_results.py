@@ -47,6 +47,7 @@ if use_random:
     n_sobol = 0
     warn("Overwriting n_sobol to 0 since use_random=True")
 
+t_start = time()
 for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
     for seed in tqdm(random_seeds, postfix="seed"):
         print(kwargs, ", seed: ", seed)
@@ -73,6 +74,7 @@ for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
         )
         print("elapsed (s): ", time() - t0)
 
+print("total elapsed time (s)", time() - t_start)
 1 + 1
 
 # %% code graveyard
