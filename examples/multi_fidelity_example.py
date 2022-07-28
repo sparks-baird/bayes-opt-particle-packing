@@ -7,20 +7,18 @@ from time import time
 from tqdm import tqdm
 from boppf.utils.data import DUMMY_SEEDS, SEEDS
 
-dummy = False
+dummy = True
 
-device_str = "cuda"  # "cuda" or "cpu"
+device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False
 multi_fidelity = True
-
-random_seed = 11
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
     # torch.cuda.set_per_process_memory_fraction(0.25, "cuda")
     torch.cuda.empty_cache()
     n_sobol = 1
-    n_bayes = 16
+    n_bayes = 2
     lower_particles = int(2.5e1)
     upper_particles = int(2.5e2)
     max_parallel = 2
@@ -41,7 +39,7 @@ for seed in tqdm(random_seeds, postfix="seed"):
         n_bayes=n_bayes,
         particles=None,
         max_parallel=max_parallel,
-        torch_device=torch.device("cpu"),
+        torch_device=torch.device(device_str),
         use_saas=use_saas,
         multi_fidelity=multi_fidelity,
         lower_particles=lower_particles,

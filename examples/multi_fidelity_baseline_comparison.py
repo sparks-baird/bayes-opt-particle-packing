@@ -8,7 +8,7 @@ from time import time
 import numpy as np
 from os import path
 
-dummy = True
+dummy = False
 
 device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False

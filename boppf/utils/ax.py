@@ -288,7 +288,7 @@ def optimize_ppf(
     ax_client.save_to_json_file(filepath=path.join(save_dir, "experiment.json"))
     # restored_ax_client = AxClient.load_from_json_file(filepath=...)
 
-    df = ax_client.get_trials_data_frame().tail(n_trials).sort_index()
+    df = ax_client.get_trials_data_frame().tail(n_trials).sort_values("trial_index")
     trials = list(ax_client.experiment.trials.values())
     # df = pd.DataFrame([trial.arm.parameters for trial in trials])
 
