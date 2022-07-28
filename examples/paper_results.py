@@ -33,13 +33,13 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 50 - n_sobol
+    n_bayes = 100 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     X_train = X_train.head(n_train_keep)
     y_train = y_train.head(n_train_keep)
     # save one CPU for my poor, overworked machine
-    max_parallel = 8  # max(1, cpu_count(logical=False))
+    max_parallel = 5  # max(1, cpu_count(logical=False))
     debug = False
     random_seeds = SEEDS
 
