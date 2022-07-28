@@ -10,10 +10,7 @@ nvalreps = 50
 
 dummy = False
 interact_contour = False
-<<<<<<< HEAD
 plot_both = False
-=======
->>>>>>> 984f533fb7417be029efe3e84dd1c0dd00057452
 use_saas = False
 if dummy:
     n_sobol = 2

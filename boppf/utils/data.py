@@ -18,7 +18,7 @@ mapper = {**mean_mapper, **std_mapper, **frac_mapper, "Packing_Fraction": target
 
 SPLIT = "_div_"
 
-SEEDS = list(range(10, 15))
+SEEDS = list(range(10, 20))
 DUMMY_SEEDS = SEEDS[0:2]
 
 MU3 = 3.0  # HACK: hardcoded
