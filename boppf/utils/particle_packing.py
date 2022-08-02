@@ -1,4 +1,4 @@
-"""Call the appropriate MATLAB scripts and executable."""
+"""Call the appropriate scripts and executable."""
 from os import getcwd, path
 import os
 from pathlib import Path
@@ -15,10 +15,6 @@ from plotly import offline
 import plotly.express as px
 from random import choices
 
-# conda activate boppf
-# cd C:\Program Files\MATLAB\R2021a\extern\engines\python
-# python setup.py install
-from matlab import engine, double
 from boppf.utils.data import prep_input_data
 
 from boppf.utils.proprietary import SECTION_KEY, write_proprietary_input_file, LINE_KEY
@@ -220,3 +216,7 @@ def read_vol_frac(uid, cwd, data_dir, verbose=True):
 #     f"scale={scale}, s={s}, mean={np.mean(check_samples)}, median={np.median(check_samples)}"
 # )
 
+# conda activate boppf
+# cd C:\Program Files\MATLAB\R2021a\extern\engines\python
+# python setup.py install
+# from matlab import engine, double
