@@ -16,7 +16,7 @@ dummy = False
 
 device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False
-use_random = False
+use_random = True
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -44,12 +44,15 @@ else:
     random_seeds = SEEDS
 
 if use_random:
+    n_bayes = n_sobol + n_bayes
     n_sobol = 0
-    warn("Overwriting n_sobol to 0 since use_random=True")
+    warn(
+        f"Adding n_sobol to n_bayes and overwriting n_sobol to 0 since use_random=True. n_sobol: {n_sobol}, n_bayes: {n_bayes}"
+    )
 
 t_start = time()
-for kwargs in tqdm(COMBS_KWARGS[0:1], postfix="combs"):
-    for seed in tqdm(random_seeds[1:2], postfix="seed"):
+for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
+    for seed in tqdm(random_seeds, postfix="seed"):
         print(kwargs, ", seed: ", seed)
 
         boppf = BOPPF(
