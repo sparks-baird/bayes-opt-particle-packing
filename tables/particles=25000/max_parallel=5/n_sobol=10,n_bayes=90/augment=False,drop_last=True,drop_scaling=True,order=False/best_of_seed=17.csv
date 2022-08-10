@@ -1,0 +1,2 @@
+,index,rm_scl,rm_comp,order,mu1,mu2,mu3,std1,std2,std3,comp1,comp2,comp3,best_sem,seed,best_pred,raw_mean
+7,7,True,True,False,3.333,16.67,10.00,0.8952,0.4126,0.5845,0.1614,0.3163,0.5222,3.05e-05,17,0.7621,0.730

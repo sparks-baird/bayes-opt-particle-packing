@@ -1,3 +1,4 @@
+"""Depends on a file from paper_plotting.py."""
 from os import path
 from pathlib import Path
 import pickle
@@ -10,6 +11,7 @@ from tqdm import tqdm
 from boppf.utils.data import (
     COMBS_KWARGS,
     DUMMY_SEEDS,
+    SEEDS,
     mean_names,
     std_names,
     frac_names,
@@ -34,13 +36,13 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 50 - n_sobol
+    n_bayes = 100 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
-    max_parallel = 8  # SparksOne has 8 cores
+    max_parallel = 5  # SparksOne has 8 cores
     debug = False
-    random_seeds = [10, 11, 12, 13, 14]
+    random_seeds = SEEDS
 
 tab_dir_base = "tables"
 
@@ -64,7 +66,7 @@ with open(main_path + ".pkl", "rb") as f:
 nvalreps = 50
 
 
-@ray.remote
+@ray.remote  # comment for debugging
 def validate_prediction(kwargs, seed):
     remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
     remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
@@ -117,7 +119,6 @@ def validate_prediction(kwargs, seed):
     )
     tab_dir = path.join(
         tab_dir_base,
-        f"n_sobol={n_sobol},n_bayes={n_bayes}",
         f"augment=False,drop_last={kwargs['remove_composition_degeneracy']},drop_scaling={kwargs['remove_scaling_degeneracy']},order={kwargs['use_order_constraint']}",
     )
     Path(tab_dir).mkdir(exist_ok=True, parents=True)
@@ -140,12 +141,12 @@ def validate_prediction(kwargs, seed):
 
 
 ray.shutdown()
-ray.init(num_cpus=cpu_count(logical=False))
+ray.init(num_cpus=10)
 # https://stackoverflow.com/questions/5236364/how-to-parallelize-list-comprehension-calculations-in-python
 dfs = ray.get(
     [
-        # validate_prediction(kwargs, seed)
-        validate_prediction.remote(kwargs, seed)
+        # validate_prediction(kwargs, seed)  # uncomment for debugging
+        validate_prediction.remote(kwargs, seed)  # comment for debugging
         for kwargs in tqdm(COMBS_KWARGS)
         for seed in tqdm(random_seeds)
     ]

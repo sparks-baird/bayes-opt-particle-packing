@@ -48,8 +48,8 @@ if use_random:
     warn("Overwriting n_sobol to 0 since use_random=True")
 
 t_start = time()
-for kwargs in tqdm(COMBS_KWARGS, postfix="combs"):
-    for seed in tqdm(random_seeds, postfix="seed"):
+for kwargs in tqdm(COMBS_KWARGS[0:1], postfix="combs"):
+    for seed in tqdm(random_seeds[1:2], postfix="seed"):
         print(kwargs, ", seed: ", seed)
 
         boppf = BOPPF(

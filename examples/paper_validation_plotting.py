@@ -1,9 +1,10 @@
+"""Depends on output from paper_validation.py"""
 from os import path
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
-from boppf.utils.data import COMBS_KWARGS, DUMMY_SEEDS
+from boppf.utils.data import COMBS_KWARGS, DUMMY_SEEDS, SEEDS
 from boppf.utils.plotting import plot_and_save
 
 nvalreps = 50
@@ -22,13 +23,12 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 50 - n_sobol
+    n_bayes = 100 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
-    # save one CPU for my poor, overworked machine
-    max_parallel = 8  # SparksOne has 8 cores
+    max_parallel = 5
     debug = False
-    random_seeds = [10, 11, 12, 13, 14]
+    random_seeds = SEEDS
 
 
 def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
@@ -67,7 +67,10 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
         use_order_constraint="order",
     )
     val_df = pd.read_csv(
-        path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv",)
+        path.join(
+            tab_dir_base,
+            f"val_results_unrounded_particles={particles}.csv",
+        )
     ).rename(columns=mapper)
 
     lbls = []
@@ -107,10 +110,13 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
 # return fig_dir_base to avoid local variable error (and alternative: more complex
 # refactor)
 fig_dir_base, df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False)
-fig_dir_base, saas_df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=True)
-
 df["type"] = "GPEI"
-saas_df["type"] = "SAAS"
+if use_saas:
+    fig_dir_base, saas_df = get_df(
+        n_sobol, n_bayes, particles, max_parallel, use_saas=True
+    )
+    saas_df["type"] = "SAAS"
+
 
 if use_saas:
     cat_df = pd.concat([df, saas_df])

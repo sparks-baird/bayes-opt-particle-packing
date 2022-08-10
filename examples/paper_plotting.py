@@ -1,3 +1,4 @@
+"""Depends on paper_results.py"""
 from os import path
 from pathlib import Path
 import pickle
@@ -44,13 +45,13 @@ if dummy:
     random_seeds = DUMMY_SEEDS
 else:
     n_sobol = 10
-    n_bayes = 50 - n_sobol
+    n_bayes = 100 - n_sobol
     particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
-    max_parallel = 8  # SparksOne has 8 cores
+    max_parallel = 5  # SparksOne has 8 cores
     debug = False
-    random_seeds = [10, 11, 12, 13, 14]
+    random_seeds = SEEDS
 
 dir_base = "results"
 
@@ -71,10 +72,16 @@ if use_saas:
     tab_dir_base = path.join(tab_dir_base, "saas")
 
 fig_dir_base = path.join(
-    fig_dir_base, f"particles={particles}", f"max_parallel={max_parallel}"
+    fig_dir_base,
+    f"particles={particles}",
+    f"max_parallel={max_parallel}",
+    f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 tab_dir_base = path.join(
-    tab_dir_base, f"particles={particles}", f"max_parallel={max_parallel}"
+    tab_dir_base,
+    f"particles={particles}",
+    f"max_parallel={max_parallel}",
+    f"n_sobol={n_sobol},n_bayes={n_bayes}",
 )
 
 dfs = []
@@ -88,7 +95,6 @@ for kwargs in COMBS_KWARGS:
     # NOTE: slightly changing the directory structure
     tab_dir = path.join(
         tab_dir_base,
-        f"n_sobol={n_sobol},n_bayes={n_bayes}",
         f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
     )
     Path(tab_dir).mkdir(exist_ok=True, parents=True)
@@ -124,11 +130,16 @@ for kwargs in COMBS_KWARGS:
             f"seed={seed}",
         )
 
+        # try:
         fig = my_optimization_trace_single_method_plotly(
             experiment,
             ylabel=target_lbl,
             optimization_direction=optimization_direction,
         )
+        # except Exception as e:
+        #     print(e)
+        #     print(f"seed {seed} failed for kwargs {kwargs}")
+        #     continue  # skip to next iteration
         fig.update_yaxes(range=[0.2, 0.85])
         Path(fig_dir).mkdir(exist_ok=True, parents=True)
 
