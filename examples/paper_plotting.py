@@ -2,6 +2,7 @@
 from os import path
 from pathlib import Path
 import pickle
+from warnings import warn
 
 # TODO: interested to see CV comparison between GPEI and SAASBO
 from ax.modelbridge.factory import get_GPEI
@@ -34,6 +35,7 @@ from ax.plot.feature_importances import plot_feature_importance_by_feature_plotl
 
 dummy = False
 interact_contour = False
+use_random = True
 use_saas = False
 if dummy:
     n_sobol = 2
@@ -53,6 +55,13 @@ else:
     debug = False
     random_seeds = SEEDS
 
+if use_random:
+    n_bayes = n_sobol + n_bayes
+    n_sobol = 0
+    warn(
+        f"Adding n_sobol to n_bayes and overwriting n_sobol to 0 since use_random=True. n_sobol: {n_sobol}, n_bayes: {n_bayes}"
+    )
+
 dir_base = "results"
 
 if dummy:
@@ -60,6 +69,9 @@ if dummy:
 
 if use_saas:
     dir_base = path.join(dir_base, "saas")
+
+if use_random:
+    dir_base = path.join(dir_base, "random")
 
 target_lbl = "vol. packing fraction"
 optimization_direction = "maximize"
@@ -70,6 +82,10 @@ tab_dir_base = "tables"
 if use_saas:
     fig_dir_base = path.join(fig_dir_base, "saas")
     tab_dir_base = path.join(tab_dir_base, "saas")
+
+if use_random:
+    fig_dir_base = path.join(fig_dir_base, "random")
+    tab_dir_base = path.join(tab_dir_base, "random")
 
 fig_dir_base = path.join(
     fig_dir_base,
@@ -150,30 +166,33 @@ for kwargs in COMBS_KWARGS:
         metric = ax_client.objective_name
         model = ax_client.generation_strategy.model
         # model = get_GPEI(experiment, experiment.fetch_data())
-        ax_feature_importances.append(model.feature_importances(metric))
-        fig = plot_feature_importance_by_feature_plotly(model)
+        if not use_random:
+            ax_feature_importances.append(model.feature_importances(metric))
+            fig = plot_feature_importance_by_feature_plotly(model)
 
-        fig_path = path.join(fig_dir, "feature_importances")
-        plot_and_save(fig_path, fig, mpl_kwargs=dict(size=12))
+            fig_path = path.join(fig_dir, "feature_importances")
+            plot_and_save(fig_path, fig, mpl_kwargs=dict(size=12))
 
-        x_range = [0.525, 0.8]
-        y_range = x_range
-        cv = cross_validate(model)
-        fig = interact_cross_validation_plotly(cv)
-        fig.update_xaxes(title_text="Actual Vol. Packing Fraction", range=x_range)
-        fig.update_yaxes(title_text="Predicted Vol. Packing Fraction", range=y_range)
-        fig_path = path.join(fig_dir, "cross_validate")
-        plot_and_save(
-            fig_path, fig, mpl_kwargs=dict(width_inches=4.0, size=20), show=False
-        )
-        # TODO: ask about feature covariance matrix on Ax GitHub
-        slice_dir = path.join(fig_dir, "slice")
-        Path(slice_dir).mkdir(exist_ok=True, parents=True)
-        fig_path = path.join(slice_dir, "slice")
-        param_names = experiment.parameters.keys()
+            x_range = [0.525, 0.8]
+            y_range = x_range
+            cv = cross_validate(model)
+            fig = interact_cross_validation_plotly(cv)
+            fig.update_xaxes(title_text="Actual Vol. Packing Fraction", range=x_range)
+            fig.update_yaxes(
+                title_text="Predicted Vol. Packing Fraction", range=y_range
+            )
+            fig_path = path.join(fig_dir, "cross_validate")
+            plot_and_save(
+                fig_path, fig, mpl_kwargs=dict(width_inches=4.0, size=20), show=False
+            )
+            # TODO: ask about feature covariance matrix on Ax GitHub
+            slice_dir = path.join(fig_dir, "slice")
+            Path(slice_dir).mkdir(exist_ok=True, parents=True)
+            fig_path = path.join(slice_dir, "slice")
+            param_names = experiment.parameters.keys()
 
         # can take a while to loop through, so don't plot for dummy
-        if not dummy:
+        if not dummy and not use_random:
             for name in param_names:
                 fig = plot_slice_plotly(model, name, metric)
                 fig.update_layout(title_text="")
@@ -187,47 +206,48 @@ for kwargs in COMBS_KWARGS:
                     ),  # for 5x5 grid
                     show=False,
                 )
-        fig_path = path.join(fig_dir, "interact_slice")
-        fig = interact_slice_plotly(model)
-        plot_and_save(
-            fig_path,
-            fig,
-            mpl_kwargs=dict(width_inches=5.0, height_inches=3.0),
-            show=False,
-        )
-
-        fig_path = path.join(fig_dir, "contour_2d")
-        fig = to_plotly(
-            ax_client.get_contour_plot(
-                param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
+        if not use_random:
+            fig_path = path.join(fig_dir, "interact_slice")
+            fig = interact_slice_plotly(model)
+            plot_and_save(
+                fig_path,
+                fig,
+                mpl_kwargs=dict(width_inches=5.0, height_inches=3.0),
+                show=False,
             )
-        )
-        plot_and_save(
-            fig_path,
-            fig,
-            mpl_kwargs=dict(size=16, width_inches=6.5, height_inches=4.0),
-            show=False,
-        )
 
-        if interact_contour:
+            fig_path = path.join(fig_dir, "contour_2d")
+            fig = to_plotly(
+                ax_client.get_contour_plot(
+                    param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
+                )
+            )
+            plot_and_save(
+                fig_path,
+                fig,
+                mpl_kwargs=dict(size=16, width_inches=6.5, height_inches=4.0),
+                show=False,
+            )
+
+        if interact_contour and not use_random:
             fig_path = path.join(fig_dir, "interact_contour_2d")
             fig = interact_contour_plotly(model=model, metric_name=metric)
             plot_and_save(fig_path, fig, show=False)
 
-        fig = to_plotly(plot_marginal_effects(model, metric))
-        # fig.update_yaxes(title_text="Percent worse than experimental average")
-        # https://stackoverflow.com/a/63586646/13697228
-        fig.layout["yaxis"].update(
-            title_text="Percent higher than experimental average"
-        )
-        fig.update_layout(title_text="")
-        fig_path = path.join(fig_dir, "marginal_effects")
-        plot_and_save(
-            fig_path,
-            fig,
-            mpl_kwargs=dict(size=16, height_inches=3.33, width_inches=10),
-            show=False,
-        )
+            fig = to_plotly(plot_marginal_effects(model, metric))
+            # fig.update_yaxes(title_text="Percent worse than experimental average")
+            # https://stackoverflow.com/a/63586646/13697228
+            fig.layout["yaxis"].update(
+                title_text="Percent higher than experimental average"
+            )
+            fig.update_layout(title_text="")
+            fig_path = path.join(fig_dir, "marginal_effects")
+            plot_and_save(
+                fig_path,
+                fig,
+                mpl_kwargs=dict(size=16, height_inches=3.33, width_inches=10),
+                show=False,
+            )
 
         (trial_idx, best_parameter, (best_pred, best_sem)) = ax_client.get_best_trial()
         best_pred = best_pred[metric]

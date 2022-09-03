@@ -68,10 +68,18 @@ class BOPPF:
         self.savename = savename
 
         ray.shutdown()
+        # https://github.com/ray-project/ray/issues/13511#issuecomment-774322180
         if debug:
-            ray.init(local_mode=True, num_cpus=max_parallel)
+            ray.init(
+                local_mode=True,
+                num_cpus=max_parallel,
+                log_to_driver=False,  # maybe I should set this to True again
+                include_dashboard=False,  # https://github.com/ray-project/ray/issues/9114#issuecomment-707325418
+            )
         else:
-            ray.init(num_cpus=max_parallel)
+            ray.init(
+                num_cpus=max_parallel, log_to_driver=False, include_dashboard=False
+            )
 
         self.seed = seed
 

@@ -11,9 +11,9 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": false,
-            "env": {
-                "RAY_DISABLE_MEMORY_MONITOR": "1"
-            }
+            // "env": {
+            //     "RAY_DISABLE_MEMORY_MONITOR": "1"
+            // }
         }
     ]
 }

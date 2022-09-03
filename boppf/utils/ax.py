@@ -288,11 +288,12 @@ def optimize_ppf(
     algo = tune.suggest.ConcurrencyLimiter(algo, max_concurrent=max_parallel)
     tune.run(
         evaluate,
-        fail_fast=True,
+        fail_fast=False,
         num_samples=n_trials,
         search_alg=algo,
         verbose=ray_verbosity,  # Set this level to 1 to see status updates and to 2 to also see trial results.
         local_dir=getcwd(),
+        resume="AUTO",
         # To use GPU, specify: resources_per_trial={"gpu": 1}.
     )
 
