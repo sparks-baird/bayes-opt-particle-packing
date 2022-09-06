@@ -35,7 +35,7 @@ from ax.plot.feature_importances import plot_feature_importance_by_feature_plotl
 
 dummy = False
 interact_contour = False
-use_random = True
+use_random = False
 use_saas = False
 if dummy:
     n_sobol = 2
@@ -141,7 +141,6 @@ for kwargs in COMBS_KWARGS:
         # at least for a later manuscript
         fig_dir = path.join(
             fig_dir_base,
-            f"n_sobol={n_sobol},n_bayes={n_bayes}",
             f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
             f"seed={seed}",
         )
@@ -173,7 +172,7 @@ for kwargs in COMBS_KWARGS:
             fig_path = path.join(fig_dir, "feature_importances")
             plot_and_save(fig_path, fig, mpl_kwargs=dict(size=12))
 
-            x_range = [0.525, 0.8]
+            x_range = [0.525, 0.85]
             y_range = x_range
             cv = cross_validate(model)
             fig = interact_cross_validation_plotly(cv)
@@ -284,7 +283,6 @@ for kwargs in COMBS_KWARGS:
     for seed, (_, sub_df) in zip(random_seeds, par_df.iterrows()):
         fig_dir = path.join(
             fig_dir_base,
-            f"n_sobol={n_sobol},n_bayes={n_bayes}",
             f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
             f"seed={seed}",
         )
@@ -314,11 +312,10 @@ for kwargs in COMBS_KWARGS:
     fig = my_std_optimization_trace_single_method_plotly(
         experiments, ylabel=target_lbl, optimization_direction=optimization_direction
     )
-    fig.update_yaxes(range=[0.575, 0.775])
+    fig.update_yaxes(range=[0.625, 0.8])
     plot_and_save(
         path.join(
             fig_dir_base,
-            f"n_sobol={n_sobol},n_bayes={n_bayes}",
             f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
             "best_objective_std_plot",
         ),
@@ -340,7 +337,6 @@ for kwargs in COMBS_KWARGS:
     )
     fig_path = path.join(
         fig_dir_base,
-        f"n_sobol={n_sobol},n_bayes={n_bayes}",
         f"augment=False,drop_last={remove_composition_degeneracy},drop_scaling={remove_scaling_degeneracy},order={use_order_constraint}",
         "avg_feature_importances",
     )
