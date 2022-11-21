@@ -67,10 +67,7 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
         use_order_constraint="order",
     )
     val_df = pd.read_csv(
-        path.join(
-            tab_dir_base,
-            f"val_results_unrounded_particles={particles}.csv",
-        )
+        path.join(tab_dir_base, f"val_results_unrounded_particles={particles}.csv",)
     ).rename(columns=mapper)
 
     lbls = []
@@ -130,7 +127,9 @@ fig = px.scatter(
     facet_col="lbl",
     color="type",
     error_y="std",
-    labels=dict(vol_frac="Volume Fraction (greater is better)"),
+    labels=dict(
+        vol_frac="Best In-sample Validated Volume Fraction (greater is better)"
+    ),
 )
 
 # fig.update_xaxes(title_text="Search Space Type")
