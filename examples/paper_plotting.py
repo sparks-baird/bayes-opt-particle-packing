@@ -1,8 +1,11 @@
 """Depends on paper_results.py"""
 from os import path
+from ast import literal_eval
 from pathlib import Path
 import pickle
 from warnings import warn
+import plotly.express as px
+import json
 
 # TODO: interested to see CV comparison between GPEI and SAASBO
 from ax.modelbridge.factory import get_GPEI
@@ -32,6 +35,7 @@ from boppf.utils.plotting import (
     to_plotly,
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 
 dummy = False
 interact_contour = False
@@ -103,6 +107,8 @@ tab_dir_base = path.join(
 dfs = []
 kwargs_dfs = []
 best_par_dfs = []
+observed_sets = {}
+predicted_sets = {}
 for kwargs in COMBS_KWARGS:
     remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
     remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
@@ -123,6 +129,8 @@ for kwargs in COMBS_KWARGS:
     raw_means = []
     raw_sems = []
     kwargs_list = []
+    observed = {}
+    predicted = {}
     for seed in random_seeds:
         load_dir = path.join(
             dir_base,
@@ -175,6 +183,8 @@ for kwargs in COMBS_KWARGS:
             x_range = [0.525, 0.85]
             y_range = x_range
             cv = cross_validate(model)
+            observed[seed] = [cv[i].observed.data.means[0] for i in range(len(cv))]
+            predicted[seed] = [cv[i].predicted.means[0] for i in range(len(cv))]
             fig = interact_cross_validation_plotly(cv)
             fig.update_xaxes(title_text="Actual Vol. Packing Fraction", range=x_range)
             fig.update_yaxes(
@@ -263,6 +273,16 @@ for kwargs in COMBS_KWARGS:
         best_preds.append(best_pred)
         best_sems.append(best_sem)
         kwargs_list.append(kwargs)
+
+    key = str(
+        dict(
+            remove_composition_degeneracy=kwargs["remove_composition_degeneracy"],
+            remove_scaling_degeneracy=kwargs["remove_scaling_degeneracy"],
+            use_order_constraint=kwargs["use_order_constraint"],
+        ),
+    )
+    observed_sets[key] = observed
+    predicted_sets[key] = predicted
 
     kwargs_dfs.append(pd.DataFrame(kwargs_list))
     par_df = pd.DataFrame(best_parameters)
@@ -367,6 +387,123 @@ main_df.to_csv(main_path + ".csv")
 for seed in random_seeds:
     sub_df = main_df[main_df.seed == seed]
     df_to_rounded_csv(sub_df, save_dir=tab_dir, save_name=f"best_of_seed={seed}.csv")
+
+
+with open(path.join(tab_dir_base, "observed.json"), "w") as f:
+    json.dump(observed_sets, f)
+
+with open(path.join(tab_dir_base, "predicted.json"), "w") as f:
+    json.dump(predicted_sets, f)
+
+# %% average and std dev of best predictions for each search space
+grp_df = main_df.groupby(["rm_scl", "rm_comp", "order"])
+best_pred_means = grp_df.mean()["best_pred"]
+best_pred_stds = grp_df.std()["best_pred"]
+
+lbls = []
+
+
+def make_lbl(kwargs):
+    remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
+    remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
+    use_order_constraint = kwargs["use_order_constraint"]
+    tmp_lbl = []
+    if remove_composition_degeneracy:
+        tmp_lbl.append("comp")
+    if remove_scaling_degeneracy:
+        tmp_lbl.append("size")
+    if use_order_constraint:
+        tmp_lbl.append("order")
+    if tmp_lbl == []:
+        lbl = "bounds<br>-only"
+    else:
+        lbl = "<br>".join(tmp_lbl)
+    return lbl
+
+
+for kwargs in COMBS_KWARGS:
+    lbl = make_lbl(kwargs)
+
+    lbls.append(lbl)
+
+pred_df = pd.DataFrame(dict(lbl=lbls, vol_frac=best_pred_means, std=best_pred_stds))
+pred_df = pred_df.sort_values(by="vol_frac", ascending=False)
+pred_df["type"] = "GPEI"
+
+
+fig = px.scatter(
+    pred_df,
+    x="type",
+    y="vol_frac",
+    facet_col="lbl",
+    color="type",
+    error_y="std",
+    labels=dict(vol_frac="Best In-sample Predicted Volume Fraction"),
+)
+
+fig.update_xaxes(title_text="")
+fig.update_xaxes(showticklabels=False)
+fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
+
+Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
+plot_and_save(
+    path.join(fig_dir_base, "pred_results"),
+    fig,
+    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
+    show=True,
+)
+
+# %% cross validation MAEs
+mean_maes = []
+std_maes = []
+dummy_maes = []
+dummy_std_maes = []
+mean_scaled_errors = []
+std_scaled_errors = []
+lbls = []
+for param_str, observation in observed_sets.items():
+    kwargs = literal_eval(param_str)
+    prediction = predicted_sets[param_str]
+    obs_df = pd.DataFrame(observation)
+    preds_df = pd.DataFrame(prediction)
+    mae_df = abs(obs_df - preds_df).mean(axis=0)
+    dummy_mae_df = abs(obs_df - obs_df.mean(axis=0)).mean(axis=0)
+    mean_maes.append(mae_df.mean())
+    std_maes.append(mae_df.std())
+    dummy_maes.append(dummy_mae_df.mean())
+    dummy_std_maes.append(dummy_mae_df.std())
+    scaled_err_df = mae_df / dummy_mae_df
+    mean_scaled_errors.append(scaled_err_df.mean())
+    std_scaled_errors.append(scaled_err_df.std())
+    lbls.append(make_lbl(kwargs))
+
+maes_df = pd.DataFrame(
+    dict(lbl=lbls, scaled_error=mean_scaled_errors, std=std_scaled_errors)
+)
+maes_df = maes_df.sort_values(by="scaled_error", ascending=True)
+maes_df["type"] = "GPEI"
+
+fig = px.scatter(
+    maes_df,
+    x="type",
+    y="scaled_error",
+    facet_col="lbl",
+    color="type",
+    error_y="std",
+    labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
+)
+
+fig.update_xaxes(title_text="")
+fig.update_xaxes(showticklabels=False)
+fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
+
+Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
+plot_and_save(
+    path.join(fig_dir_base, "pred_results"),
+    fig,
+    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
+    show=True,
+)
 
 1 + 1
 # %% Code Graveyard
