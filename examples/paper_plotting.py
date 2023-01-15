@@ -10,12 +10,14 @@ import json
 # TODO: interested to see CV comparison between GPEI and SAASBO
 from ax.modelbridge.factory import get_GPEI
 from ax import Models
+from plotly import offline
 from ax.modelbridge.cross_validation import cross_validate
 from ax.plot.diagnostic import interact_cross_validation_plotly
 from ax.plot.marginal_effects import plot_marginal_effects
 from ax.plot.slice import interact_slice_plotly, plot_slice_plotly
 from ax.plot.contour import interact_contour_plotly
 from ax.service.ax_client import AxClient
+import numpy as np
 import pandas as pd
 from boppf.utils.data import (
     COMBS_KWARGS,
@@ -24,6 +26,7 @@ from boppf.utils.data import (
     frac_names,
     mean_names,
     std_names,
+    param_mapper,
 )
 from boppf.utils.plotting import (
     my_plot_feature_importance_by_feature_plotly,
@@ -36,6 +39,7 @@ from boppf.utils.plotting import (
 )
 from ax.plot.feature_importances import plot_feature_importance_by_feature_plotly
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+from scipy.stats import ttest_ind
 
 dummy = False
 interact_contour = False
@@ -231,6 +235,9 @@ for kwargs in COMBS_KWARGS:
                     param_x=frac_names[0], param_y=frac_names[1], metric_name=metric
                 )
             )
+            # rename x-axis to $p_1$ and rename y-axis to $p_2$
+            fig.update_xaxes(title_text="$p_1$")
+            fig.update_yaxes(title_text="$p_2$")
             plot_and_save(
                 fig_path,
                 fig,
@@ -299,6 +306,8 @@ for kwargs in COMBS_KWARGS:
         last_frac = frac_names[-1]
         par_df[last_frac] = 1.0 - par_df[frac_names[0:-1]].sum(axis=1)
 
+    # par_df = par_df.rename(columns=param_mapper)
+
     # distribution plots
     for seed, (_, sub_df) in zip(random_seeds, par_df.iterrows()):
         fig_dir = path.join(
@@ -345,6 +354,7 @@ for kwargs in COMBS_KWARGS:
     )
 
     feat_df = pd.DataFrame(ax_feature_importances).T
+    feat_df = feat_df.rename(columns=param_mapper)
     feat_df["mean"] = feat_df.mean(axis=1)
     feat_df["std"] = feat_df.std(axis=1)
     avg_ax_importances = feat_df["mean"].to_dict()
@@ -368,6 +378,7 @@ pars = {*mean_names, *std_names, *frac_names}
 all_columns = {*list(main_df.columns)}
 other_columns = all_columns - pars
 main_df = main_df[mean_names + std_names + frac_names + list(other_columns)]
+main_df = main_df.rename(columns=param_mapper)
 mapper = dict(
     remove_scaling_degeneracy="rm_scl",
     remove_composition_degeneracy="rm_comp",
@@ -397,6 +408,7 @@ with open(path.join(tab_dir_base, "predicted.json"), "w") as f:
 
 # %% average and std dev of best predictions for each search space
 grp_df = main_df.groupby(["rm_scl", "rm_comp", "order"])
+best_pred_dfs = [grp_df.get_group(x)["best_pred"] for x in grp_df.groups]
 best_pred_means = grp_df.mean()["best_pred"]
 best_pred_stds = grp_df.std()["best_pred"]
 
@@ -426,6 +438,8 @@ for kwargs in COMBS_KWARGS:
 
     lbls.append(lbl)
 
+best_pred_dfs = {lbl: df for lbl, df in zip(lbls, best_pred_dfs)}
+
 pred_df = pd.DataFrame(dict(lbl=lbls, vol_frac=best_pred_means, std=best_pred_stds))
 pred_df = pred_df.sort_values(by="vol_frac", ascending=False)
 pred_df["type"] = "GPEI"
@@ -439,19 +453,26 @@ fig = px.scatter(
     color="type",
     error_y="std",
     labels=dict(vol_frac="Best In-sample Predicted Volume Fraction"),
+    width=450,
+    height=450,
 )
-
+# remove legend
+fig.update_layout(showlegend=False)
 fig.update_xaxes(title_text="")
 fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
 Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
-plot_and_save(
-    path.join(fig_dir_base, "pred_results"),
-    fig,
-    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
-    show=True,
-)
+
+fig_path = path.join(fig_dir_base, "pred_results")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+# plot_and_save(
+#     fig_path,
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
+#     show=True,
+# )
 
 # %% cross validation MAEs
 mean_maes = []
@@ -460,6 +481,7 @@ dummy_maes = []
 dummy_std_maes = []
 mean_scaled_errors = []
 std_scaled_errors = []
+scaled_err_dfs = {}
 lbls = []
 for param_str, observation in observed_sets.items():
     kwargs = literal_eval(param_str)
@@ -473,9 +495,11 @@ for param_str, observation in observed_sets.items():
     dummy_maes.append(dummy_mae_df.mean())
     dummy_std_maes.append(dummy_mae_df.std())
     scaled_err_df = mae_df / dummy_mae_df
+    lbl = make_lbl(kwargs)
+    scaled_err_dfs[lbl] = scaled_err_df
     mean_scaled_errors.append(scaled_err_df.mean())
     std_scaled_errors.append(scaled_err_df.std())
-    lbls.append(make_lbl(kwargs))
+    lbls.append(lbl)
 
 maes_df = pd.DataFrame(
     dict(lbl=lbls, scaled_error=mean_scaled_errors, std=std_scaled_errors)
@@ -491,19 +515,97 @@ fig = px.scatter(
     color="type",
     error_y="std",
     labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
+    width=450,
+    height=450,
 )
-
+# remove legend
+fig.update_layout(showlegend=False)
 fig.update_xaxes(title_text="")
 fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
-Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
-plot_and_save(
-    path.join(fig_dir_base, "pred_results"),
-    fig,
-    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
-    show=True,
+fig_path = path.join(fig_dir_base, "cv_results")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+# plot_and_save(
+#     fig_path,
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=4.5, height_inches=4.5),
+#     show=True,
+# )
+
+# %% Best Pred T-test
+lbls = ["comp", "order", "comp<br>order", "bounds<br>-only"]  # HACK: hardcoded
+num_lbls = len(lbls)
+pred_ttest_results = np.zeros((num_lbls, num_lbls))
+for i, i_lbl in enumerate(lbls):
+    a = best_pred_dfs[i_lbl].values
+    for j, j_lbl in enumerate(lbls):
+        b = best_pred_dfs[j_lbl].values
+        _, pred_ttest_results[i, j] = ttest_ind(a, b, equal_var=False)
+
+fig = px.imshow(
+    pred_ttest_results,
+    x=lbls,
+    y=lbls,
+    color_continuous_scale="RdBu_r",
+    width=450,
+    height=450,
 )
+# heatmap with values as text labels
+fig.update_traces(text=pred_ttest_results, texttemplate="%{text:.2f}")
+# name the color-axis as "t-test p-value"
+fig.update_layout(coloraxis_colorbar=dict(title="t-test p-value"))
+
+fig_path = path.join(fig_dir_base, "pred_results_ttest")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+
+# plot_and_save(
+#     path.join(fig_dir_base, "pred_results_ttest"),
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=4.5, height_inches=4.5),
+#     show=True,
+# )
+
+# %% CV T-test
+lbls = ["comp<br>order", "order", "bounds<br>-only", "comp"]  # HACK: hardcoded
+num_lbls = len(lbls)
+cv_ttest_results = np.zeros((num_lbls, num_lbls))
+for i, i_lbl in enumerate(lbls):
+    a = scaled_err_dfs[i_lbl].values
+    for j, j_lbl in enumerate(lbls):
+        b = scaled_err_dfs[j_lbl].values
+        _, cv_ttest_results[i, j] = ttest_ind(a, b, equal_var=False)
+
+fig = px.imshow(
+    cv_ttest_results,
+    x=lbls,
+    y=lbls,
+    color_continuous_scale="RdBu_r",
+    width=450,
+    height=450,
+)
+# heatmap with values as text labels
+fig.update_traces(text=cv_ttest_results, texttemplate="%{text:.2f}")
+# name the color-axis as "t-test p-value"
+fig.update_layout(coloraxis_colorbar=dict(title="t-test p-value"))
+
+fig_path = path.join(fig_dir_base, "cv_results_ttest")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+# plot_and_save(
+#     path.join(fig_dir_base, "cv_results_ttest"),
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=4.5, height_inches=4.5),
+#     show=True,
+# )
+
+# %% Bash Helper Commands for copying figures to paper repo
+# Based on https://askubuntu.com/a/333641/1186612
+# First, open Windows Terminal with an Ubuntu shell
+# cd /mnt/c/Users/sterg/Documents/GitHub/
+# rsync -av --exclude="**/*.html" sparks-baird/bayes-opt-particle-packing/figures/particles\=25000/max_parallel\=5/ sgbaird/bayes-opt-particle-packing-papers/figures/particles\=25000/max_parallel\=5/
 
 1 + 1
 # %% Code Graveyard
