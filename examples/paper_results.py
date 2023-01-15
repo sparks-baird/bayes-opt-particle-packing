@@ -16,7 +16,7 @@ dummy = False
 
 device_str = "cpu"  # "cuda" or "cpu"
 use_saas = False
-use_random = True
+use_random = False
 
 if dummy:
     # https://stackoverflow.com/questions/49529372/force-gpu-memory-limit-in-pytorch
@@ -41,7 +41,7 @@ else:
     # save one CPU for my poor, overworked machine
     max_parallel = 5  # max(1, cpu_count(logical=False))
     debug = False
-    random_seeds = SEEDS
+    random_seeds = SEEDS[-10:]
 
 if use_random:
     n_bayes = n_sobol + n_bayes
