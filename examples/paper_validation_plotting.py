@@ -2,10 +2,13 @@
 from os import path
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import plotly.express as px
+from plotly import offline
 from boppf.utils.data import COMBS_KWARGS, DUMMY_SEEDS, SEEDS
 from boppf.utils.plotting import plot_and_save
+from scipy.stats import ttest_ind
 
 nvalreps = 50
 
@@ -73,6 +76,7 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
     lbls = []
     means = []
     stds = []
+    sub_dfs = {}
     for kwargs in COMBS_KWARGS:
         remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
         remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
@@ -98,15 +102,18 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
         lbls.append(lbl)
         means.append(mean)
         stds.append(std)
+        sub_dfs[lbl] = sub_df
 
     df = pd.DataFrame(dict(lbl=lbls, vol_frac=means, std=stds))
     df = df.sort_values(by="vol_frac", ascending=False)
-    return fig_dir_base, df
+    return fig_dir_base, df, sub_dfs
 
 
 # return fig_dir_base to avoid local variable error (and alternative: more complex
 # refactor)
-fig_dir_base, df = get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False)
+fig_dir_base, df, sub_dfs = get_df(
+    n_sobol, n_bayes, particles, max_parallel, use_saas=False
+)
 df["type"] = "GPEI"
 if use_saas:
     fig_dir_base, saas_df = get_df(
@@ -130,7 +137,12 @@ fig = px.scatter(
     labels=dict(
         vol_frac="Best In-sample Validated Volume Fraction (greater is better)"
     ),
+    width=450,
+    height=450,
 )
+fig.update_layout(showlegend=False)
+# decrease the font size of the y-axis label
+fig.update_yaxes(title_font=dict(size=10))
 
 # fig.update_xaxes(title_text="Search Space Type")
 fig.update_xaxes(title_text="")
@@ -138,12 +150,51 @@ fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
 Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
-plot_and_save(
-    path.join(fig_dir_base, "val_results"),
-    fig,
-    mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
-    show=True,
+
+fig_path = path.join(fig_dir_base, "val_results")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+
+# plot_and_save(
+#     path.join(fig_dir_base, "val_results"),
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
+#     show=True,
+# )
+
+# %% T-test
+lbls = df["lbl"]
+num_lbls = len(lbls)
+ttest_results = np.zeros((num_lbls, num_lbls))
+for i, i_lbl in enumerate(lbls):
+    a = sub_dfs[i_lbl]["vol_frac"].values
+    for j, j_lbl in enumerate(lbls):
+        b = sub_dfs[j_lbl]["vol_frac"].values
+        _, ttest_results[i, j] = ttest_ind(a, b, equal_var=False)
+
+fig = px.imshow(
+    ttest_results,
+    x=lbls,
+    y=lbls,
+    color_continuous_scale="RdBu_r",
+    width=450,
+    height=450,
 )
+# heatmap with values as text labels
+fig.update_traces(text=ttest_results, texttemplate="%{text:.2f}")
+# name the color-axis as "t-test p-value"
+fig.update_layout(coloraxis_colorbar=dict(title="t-test p-value"))
+
+fig_path = path.join(fig_dir_base, "val_results_ttest")
+fig.write_image(fig_path + ".png", scale=3)
+offline.plot(fig)
+
+# plot_and_save(
+#     path.join(fig_dir_base, "val_results_ttest"),
+#     fig,
+#     mpl_kwargs=dict(size=16, width_inches=8.0, height_inches=4.5),
+#     show=True,
+# )
 
 1 + 1
 

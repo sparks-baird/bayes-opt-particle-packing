@@ -26,10 +26,12 @@ default_mean_bnd = [1.0, 5.0]
 default_std_bnd = [0.1, 1.0]
 default_frac_bnd = [0.0, 1.0]
 
-combs = list(product([True, False], repeat=3))
+# combs = list(product([True, False], repeat=3)) # HACK: no scaling degeneracy
+
+combs = list(product([True, False], repeat=2))
 
 keys = [
-    "remove_scaling_degeneracy",
+    # "remove_scaling_degeneracy", # HACK: no scaling degeneracy
     "remove_composition_degeneracy",
     "use_order_constraint",
 ]
@@ -37,7 +39,22 @@ keys = [
 COMBS_KWARGS = []
 for comb in combs:
     kwargs = {k: v for k, v in zip(keys, comb)}
+    kwargs["remove_scaling_degeneracy"] = False  # HACK: no scaling degeneracy
     COMBS_KWARGS.append(kwargs)
+
+param_mapper = dict(
+            mu1="$\tilde{x}_1$",
+            mu2="$\tilde{x}_2$",
+            mu3="$\tilde{x}_3$",
+            std1="$s_1$",
+            std2="$s_2$",
+            std3="$s_3$",
+            comp1="$p_1$",
+            comp2="$p_2$",
+            comp3="$p_3$",
+            mu1_div_mu3="$\tilde{x}_1 / \tilde{x}_3$",
+            mu2_div_mu3="$\tilde{x}_2 / \tilde{x}_3$",
+        )
 
 
 def load_data(fname="packing-fraction.csv", folder="data"):
@@ -190,10 +207,7 @@ def get_s_mode_radii(size, s, scale, max_running_size=10000):
         upp = np.sqrt(max_ratio)  # e.g. 4
         low = 1 / upp  # e.g. 0.25
         s_mode_radii = s_mode_radii[
-            np.all(
-                [s_mode_radii > low * scale, s_mode_radii < upp * scale],
-                axis=0,
-            )
+            np.all([s_mode_radii > low * scale, s_mode_radii < upp * scale], axis=0,)
         ]
         n_radii = len(s_mode_radii)
         running_size += 1
@@ -251,8 +265,6 @@ def prep_input_data(means, stds, fractions, tol, size):
             c_radii.append(c_mode_radii)
             m_fracs.append(m_mode_fracs)
     return s_radii, c_radii, m_fracs
-    
-    
 
 
 # %% Code Graveyard
