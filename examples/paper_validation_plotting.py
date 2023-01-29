@@ -164,7 +164,7 @@ fig.update_yaxes(title_font=dict(size=10))
 
 # fig.update_xaxes(title_text="Search Space Type")
 fig.update_xaxes(title_text="")
-fig.update_xaxes(showticklabels=False)
+# fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
 Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
