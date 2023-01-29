@@ -127,19 +127,37 @@ if use_saas:
 else:
     cat_df = df
 
-fig = px.scatter(
-    cat_df,
-    x="type",
+# fig = px.scatter(
+#     cat_df,
+#     x="type",
+#     y="vol_frac",
+#     facet_col="lbl",
+#     color="type",
+#     error_y="std",
+#     labels=dict(
+#         vol_frac="Best In-sample Validated Volume Fraction (greater is better)"
+#     ),
+#     width=450,
+#     height=450,
+# )
+
+for key, sub_df in sub_dfs.items():
+    sub_df["lbl"] = key
+
+main_df = pd.concat(list(sub_dfs.values()), axis=0)
+
+fig = px.box(
+    main_df,
+    x="lbl",
     y="vol_frac",
-    facet_col="lbl",
-    color="type",
-    error_y="std",
+    points="all",
+    width=450,
+    height=450,
     labels=dict(
         vol_frac="Best In-sample Validated Volume Fraction (greater is better)"
     ),
-    width=450,
-    height=450,
 )
+
 fig.update_layout(showlegend=False)
 # decrease the font size of the y-axis label
 fig.update_yaxes(title_font=dict(size=10))
