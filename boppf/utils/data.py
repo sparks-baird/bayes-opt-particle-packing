@@ -18,7 +18,7 @@ mapper = {**mean_mapper, **std_mapper, **frac_mapper, "Packing_Fraction": target
 
 SPLIT = "_div_"
 
-SEEDS = list(range(10, 30))
+SEEDS = list(range(10, 20))
 DUMMY_SEEDS = SEEDS[0:2]
 
 MU3 = 3.0  # HACK: hardcoded
@@ -43,18 +43,18 @@ for comb in combs:
     COMBS_KWARGS.append(kwargs)
 
 param_mapper = dict(
-            mu1="$\tilde{x}_1$",
-            mu2="$\tilde{x}_2$",
-            mu3="$\tilde{x}_3$",
-            std1="$s_1$",
-            std2="$s_2$",
-            std3="$s_3$",
-            comp1="$p_1$",
-            comp2="$p_2$",
-            comp3="$p_3$",
-            mu1_div_mu3="$\tilde{x}_1 / \tilde{x}_3$",
-            mu2_div_mu3="$\tilde{x}_2 / \tilde{x}_3$",
-        )
+    mu1="$\tilde{x}_1$",
+    mu2="$\tilde{x}_2$",
+    mu3="$\tilde{x}_3$",
+    std1="$s_1$",
+    std2="$s_2$",
+    std3="$s_3$",
+    comp1="$p_1$",
+    comp2="$p_2$",
+    comp3="$p_3$",
+    mu1_div_mu3="$\tilde{x}_1 / \tilde{x}_3$",
+    mu2_div_mu3="$\tilde{x}_2 / \tilde{x}_3$",
+)
 
 
 def load_data(fname="packing-fraction.csv", folder="data"):
