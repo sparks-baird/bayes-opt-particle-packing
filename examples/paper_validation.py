@@ -12,9 +12,9 @@ from boppf.utils.data import (
     COMBS_KWARGS,
     DUMMY_SEEDS,
     SEEDS,
-    mean_names,
-    std_names,
-    frac_names,
+    # mean_names,
+    # std_names,
+    # frac_names,
 )
 
 from os import chdir, getcwd
@@ -84,6 +84,9 @@ def validate_prediction(kwargs, seed):
 
     uid = str(uuid4())[0:8]
 
+    mean_names = ["$\tilde{x}_1$", "$\tilde{x}_2$", "$\tilde{x}_3$"]
+    std_names = ["$s_1$", "$s_2$", "$s_3$"]
+    frac_names = ["$p_1$", "$p_2$", "$p_3$"]
     means = sub_df[mean_names].values.tolist()[0]
     stds = sub_df[std_names].values.tolist()[0]
     fractions = sub_df[frac_names].values.tolist()[0]
@@ -94,11 +97,7 @@ def validate_prediction(kwargs, seed):
     vol_fracs = []
     for _ in range(nvalreps):
         vol_frac = particle_packing_simulation(
-            uid=uid,
-            particles=particles,
-            means=means,
-            stds=stds,
-            fractions=fractions,
+            uid=uid, particles=particles, means=means, stds=stds, fractions=fractions,
         )
         vol_fracs.append(vol_frac)
     avg_vol_frac = np.mean(vol_fracs)
