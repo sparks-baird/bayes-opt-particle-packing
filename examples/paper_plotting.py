@@ -24,6 +24,7 @@ from boppf.utils.data import (
     DUMMY_SEEDS,
     SEEDS,
     frac_names,
+    get_parameters,
     mean_names,
     std_names,
     param_mapper,
@@ -48,6 +49,7 @@ use_saas = False
 if dummy:
     n_sobol = 2
     n_bayes = 3
+    cutoff = 4
     particles = 1000
     n_train_keep = 0
     max_parallel = 2
@@ -56,6 +58,7 @@ if dummy:
 else:
     n_sobol = 10
     n_bayes = 100 - n_sobol
+    cutoff = 50  # per reviewer comment (e.g., 20, 40, 60)
     particles = int(2.5e4)
     n_train_keep = 0
     # save one CPU for my poor, overworked machine
@@ -145,6 +148,8 @@ for kwargs in COMBS_KWARGS:
         )
         fpath = path.join(load_dir, "experiment.json")
         ax_client = AxClient.load_from_json_file(filepath=fpath)
+        [ax_client.experiment._trials.pop(i) for i in range(cutoff, n_sobol + n_bayes)]
+
         experiment = ax_client.experiment
         experiments.append(experiment)
 
@@ -175,6 +180,7 @@ for kwargs in COMBS_KWARGS:
         )
 
         metric = ax_client.objective_name
+        ax_client.fit_model()
         model = ax_client.generation_strategy.model
         # model = get_GPEI(experiment, experiment.fetch_data())
         if not use_random:
@@ -341,7 +347,7 @@ for kwargs in COMBS_KWARGS:
     fig = my_std_optimization_trace_single_method_plotly(
         experiments, ylabel=target_lbl, optimization_direction=optimization_direction
     )
-    fig.update_yaxes(range=[0.625, 0.8])
+    fig.update_yaxes(range=[0.625, 0.78])
     plot_and_save(
         path.join(
             fig_dir_base,
@@ -435,7 +441,6 @@ def make_lbl(kwargs):
 
 for kwargs in COMBS_KWARGS:
     lbl = make_lbl(kwargs)
-
     lbls.append(lbl)
 
 best_pred_dfs = {lbl: df for lbl, df in zip(lbls, best_pred_dfs)}
@@ -444,22 +449,38 @@ pred_df = pd.DataFrame(dict(lbl=lbls, vol_frac=best_pred_means, std=best_pred_st
 pred_df = pred_df.sort_values(by="vol_frac", ascending=False)
 pred_df["type"] = "GPEI"
 
+for key, sub_df in best_pred_dfs.items():
+    sub_df = sub_df.to_frame()
+    sub_df["lbl"] = key
+    best_pred_dfs[key] = sub_df
 
-fig = px.scatter(
-    pred_df,
-    x="type",
-    y="vol_frac",
-    facet_col="lbl",
-    color="type",
-    error_y="std",
-    labels=dict(vol_frac="Best In-sample Predicted Volume Fraction"),
+main_best_pred_df = pd.concat(best_pred_dfs.values(), axis=0, ignore_index=True)
+
+fig = px.box(
+    main_best_pred_df,
+    x="lbl",
+    y="best_pred",
+    points="all",
     width=450,
     height=450,
+    labels=dict(best_pred="Best In-sample Predicted Volume Fraction"),
 )
+
+# fig = px.scatter(
+#     pred_df,
+#     x="type",
+#     y="vol_frac",
+#     facet_col="lbl",
+#     color="type",
+#     error_y="std",
+#     labels=dict(vol_frac="Best In-sample Predicted Volume Fraction"),
+#     width=450,
+#     height=450,
+# )
 # remove legend
 fig.update_layout(showlegend=False)
 fig.update_xaxes(title_text="")
-fig.update_xaxes(showticklabels=False)
+# fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
 Path(fig_dir_base).mkdir(exist_ok=True, parents=True)
@@ -497,6 +518,7 @@ for param_str, observation in observed_sets.items():
     scaled_err_df = mae_df / dummy_mae_df
     lbl = make_lbl(kwargs)
     scaled_err_dfs[lbl] = scaled_err_df
+    scaled_err_df.name = "scaled_error"
     mean_scaled_errors.append(scaled_err_df.mean())
     std_scaled_errors.append(scaled_err_df.std())
     lbls.append(lbl)
@@ -507,21 +529,38 @@ maes_df = pd.DataFrame(
 maes_df = maes_df.sort_values(by="scaled_error", ascending=True)
 maes_df["type"] = "GPEI"
 
-fig = px.scatter(
-    maes_df,
-    x="type",
+for key, sub_df in scaled_err_dfs.items():
+    sub_df = sub_df.to_frame()
+    sub_df["lbl"] = key
+    scaled_err_dfs[key] = sub_df
+
+main_scaled_err_df = pd.concat(scaled_err_dfs.values(), axis=0, ignore_index=True)
+
+fig = px.box(
+    main_scaled_err_df,
+    x="lbl",
     y="scaled_error",
-    facet_col="lbl",
-    color="type",
-    error_y="std",
-    labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
+    points="all",
     width=450,
     height=450,
+    labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
 )
+
+# fig = px.scatter(
+#     maes_df,
+#     x="type",
+#     y="scaled_error",
+#     facet_col="lbl",
+#     color="type",
+#     error_y="std",
+#     labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
+#     width=450,
+#     height=450,
+# )
 # remove legend
 fig.update_layout(showlegend=False)
 fig.update_xaxes(title_text="")
-fig.update_xaxes(showticklabels=False)
+# fig.update_xaxes(showticklabels=False)
 fig.for_each_annotation(lambda a: a.update(text=a.text.replace("lbl=", "")))
 
 fig_path = path.join(fig_dir_base, "cv_results")
@@ -535,13 +574,13 @@ offline.plot(fig)
 # )
 
 # %% Best Pred T-test
-lbls = ["comp", "order", "comp<br>order", "bounds<br>-only"]  # HACK: hardcoded
+# lbls = ["comp", "order", "comp<br>order", "bounds<br>-only"]  # HACK: hardcoded
 num_lbls = len(lbls)
 pred_ttest_results = np.zeros((num_lbls, num_lbls))
 for i, i_lbl in enumerate(lbls):
-    a = best_pred_dfs[i_lbl].values
+    a = best_pred_dfs[i_lbl]["best_pred"].values
     for j, j_lbl in enumerate(lbls):
-        b = best_pred_dfs[j_lbl].values
+        b = best_pred_dfs[j_lbl]["best_pred"].values
         _, pred_ttest_results[i, j] = ttest_ind(a, b, equal_var=False)
 
 fig = px.imshow(
@@ -569,13 +608,17 @@ offline.plot(fig)
 # )
 
 # %% CV T-test
-lbls = ["comp<br>order", "order", "bounds<br>-only", "comp"]  # HACK: hardcoded
+# lbls = ["comp<br>order", "order", "bounds<br>-only", "comp"]  # HACK: hardcoded
+for kwargs in COMBS_KWARGS:
+    lbl = make_lbl(kwargs)
+    lbls.append(lbl)
+
 num_lbls = len(lbls)
 cv_ttest_results = np.zeros((num_lbls, num_lbls))
 for i, i_lbl in enumerate(lbls):
-    a = scaled_err_dfs[i_lbl].values
+    a = scaled_err_dfs[i_lbl]["scaled_error"].values
     for j, j_lbl in enumerate(lbls):
-        b = scaled_err_dfs[j_lbl].values
+        b = scaled_err_dfs[j_lbl]["scaled_error"].values
         _, cv_ttest_results[i, j] = ttest_ind(a, b, equal_var=False)
 
 fig = px.imshow(
@@ -601,12 +644,14 @@ offline.plot(fig)
 #     show=True,
 # )
 
-# %% Bash Helper Commands for copying figures to paper repo
-# Based on https://askubuntu.com/a/333641/1186612
-# First, open Windows Terminal with an Ubuntu shell
-# cd /mnt/c/Users/sterg/Documents/GitHub/
-# rsync -av --exclude="**/*.html" sparks-baird/bayes-opt-particle-packing/figures/particles\=25000/max_parallel\=5/ sgbaird/bayes-opt-particle-packing-papers/figures/particles\=25000/max_parallel\=5/
-
+"""
+Bash Helper Commands for copying figures to paper repo
+------------------------------------------------------
+Based on https://askubuntu.com/a/333641/1186612
+First, open Windows Terminal with an Ubuntu shell
+cd /mnt/c/Users/sterg/Documents/GitHub/
+rsync -av --exclude="**/*.html" sparks-baird/bayes-opt-particle-packing/figures/particles\=25000/max_parallel\=5/ sgbaird/bayes-opt-particle-packing-papers/figures/particles\=25000/max_parallel\=5/
+"""
 1 + 1
 # %% Code Graveyard
 # exp = ax_client.experiment
@@ -620,3 +665,18 @@ offline.plot(fig)
 # )
 # best_pred = best_pred[metric][0]
 # best_sem = best_sem[metric][metric][0]
+
+# ax_client_tmp = AxClient(generation_strategy=ax_client.generation_strategy)
+
+# _, parameters, _, _, _, _, _ = get_parameters(
+#     remove_composition_degeneracy=remove_composition_degeneracy,
+#     remove_scaling_degeneracy=remove_scaling_degeneracy,
+# )
+
+# ax_client_tmp.create_experiment(name="particle_packing", parameters=parameters)
+
+# create an ax_client with only the first 50 iterations
+# AxClient(
+#     experiment=ax_client.experiment,
+#     data=ax_client.experiment.fetch_trials_data(range(0, cutoff)),
+# )
