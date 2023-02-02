@@ -456,15 +456,35 @@ for key, sub_df in best_pred_dfs.items():
 
 main_best_pred_df = pd.concat(best_pred_dfs.values(), axis=0, ignore_index=True)
 
-fig = px.box(
+# fig = px.box(
+#     main_best_pred_df,
+#     x="lbl",
+#     y="best_pred",
+#     points="all",
+#     width=450,
+#     height=450,
+#     labels=dict(best_pred="Best In-sample Predicted Volume Fraction"),
+# )
+
+fig = px.strip(
     main_best_pred_df,
     x="lbl",
     y="best_pred",
-    points="all",
     width=450,
     height=450,
     labels=dict(best_pred="Best In-sample Predicted Volume Fraction"),
 )
+
+best_pred_grp = main_best_pred_df.groupby("lbl")
+best_pred_results = pd.concat((best_pred_grp.mean(), best_pred_grp.std()), axis=1)
+best_pred_results.columns = ["mean", "std"]
+best_pred_results = best_pred_results.loc[lbls]
+best_pred_results.index.name = "type"
+best_pred_results.index = best_pred_results.index.str.replace("<br>", "-")
+best_pred_results.index = best_pred_results.index.str.replace("--", "-")
+best_pred_results = best_pred_results.round(3)
+best_pred_results.to_csv(path.join(tab_dir_base, "best_pred_results.csv"))
+best_pred_results.to_csv(path.join(fig_dir_base, "best_pred_results.csv"))
 
 # fig = px.scatter(
 #     pred_df,
@@ -536,15 +556,35 @@ for key, sub_df in scaled_err_dfs.items():
 
 main_scaled_err_df = pd.concat(scaled_err_dfs.values(), axis=0, ignore_index=True)
 
-fig = px.box(
+# fig = px.box(
+#     main_scaled_err_df,
+#     x="lbl",
+#     y="scaled_error",
+#     points="all",
+#     width=450,
+#     height=450,
+#     labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
+# )
+
+fig = px.strip(
     main_scaled_err_df,
     x="lbl",
     y="scaled_error",
-    points="all",
     width=450,
     height=450,
     labels=dict(scaled_error="Cross-Validation Scaled MAE (lower is better)"),
 )
+
+scaled_err_grp = main_scaled_err_df.groupby("lbl")
+scaled_err_results = pd.concat((scaled_err_grp.mean(), scaled_err_grp.std()), axis=1)
+scaled_err_results.columns = ["mean", "std"]
+scaled_err_results = scaled_err_results.loc[lbls]
+scaled_err_results.index.name = "type"
+scaled_err_results.index = scaled_err_results.index.str.replace("<br>", "-")
+scaled_err_results.index = scaled_err_results.index.str.replace("--", "-")
+scaled_err_results = scaled_err_results.round(3)
+scaled_err_results.to_csv(path.join(tab_dir_base, "scaled_err_results.csv"))
+scaled_err_results.to_csv(path.join(fig_dir_base, "scaled_err_results.csv"))
 
 # fig = px.scatter(
 #     maes_df,
@@ -609,9 +649,6 @@ offline.plot(fig)
 
 # %% CV T-test
 # lbls = ["comp<br>order", "order", "bounds<br>-only", "comp"]  # HACK: hardcoded
-for kwargs in COMBS_KWARGS:
-    lbl = make_lbl(kwargs)
-    lbls.append(lbl)
 
 num_lbls = len(lbls)
 cv_ttest_results = np.zeros((num_lbls, num_lbls))
@@ -645,12 +682,24 @@ offline.plot(fig)
 # )
 
 """
-Bash Helper Commands for copying figures to paper repo
+Bash Helper Commands for copying figures and tables to paper repo
 ------------------------------------------------------
+Ensure that you also run paper_plotting_validation.py
+
 Based on https://askubuntu.com/a/333641/1186612
-First, open Windows Terminal with an Ubuntu shell
+First, open Windows Terminal with an Ubuntu shell.
+```bash
 cd /mnt/c/Users/sterg/Documents/GitHub/
-rsync -av --exclude="**/*.html" sparks-baird/bayes-opt-particle-packing/figures/particles\=25000/max_parallel\=5/ sgbaird/bayes-opt-particle-packing-papers/figures/particles\=25000/max_parallel\=5/
+rsync -av --exclude="**/*.html"
+sparks-baird/bayes-opt-particle-packing/figures/particles\=25000/max_parallel\=5/
+sgbaird/bayes-opt-particle-packing-papers/figures/particles\=25000/max_parallel\=5/
+```
+
+```bash
+cp
+sparks-baird/bayes-opt-particle-packing/tables/particles\=25000/max_parallel\=5/n_sobol\=10\,n_bayes\=90/*.csv
+sgbaird/bayes-opt-particle-packing-papers/tables/
+```
 """
 1 + 1
 # %% Code Graveyard
