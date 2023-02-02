@@ -1,0 +1,5 @@
+type,mean,std
+comp-order,0.747,0.015
+comp,0.748,0.015
+order,0.742,0.014
+bounds-only,0.734,0.022

@@ -1,2 +1,2 @@
-remove_scaling_degeneracy,remove_composition_degeneracy,use_order_constraint,mu1,mu2,mu3,std1,std2,std3,comp1,comp2,comp3,seed,vol_frac,std
-False,False,False,4.7048975676783735,1.0,5.0,1.0,0.8907042247173877,1.0,0.3366020458239162,0.09058429358129388,0.13889120660229912,12,0.7352600000000001,0.01857074042681122
+remove_scaling_degeneracy,remove_composition_degeneracy,use_order_constraint,$	ilde{x}_1$,$	ilde{x}_2$,$	ilde{x}_3$,$s_1$,$s_2$,$s_3$,$p_1$,$p_2$,$p_3$,seed,vol_frac,std
+False,False,False,4.782473705580123,1.0,5.0,0.9397666386452292,0.881430861666728,1.0,0.06583745124546005,0.07141342933048472,0.09922678928194516,12,0.7438799999999999,0.02623252942436168
