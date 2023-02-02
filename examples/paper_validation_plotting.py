@@ -106,17 +106,17 @@ def get_df(n_sobol, n_bayes, particles, max_parallel, use_saas=False):
 
     df = pd.DataFrame(dict(lbl=lbls, vol_frac=means, std=stds))
     df = df.sort_values(by="vol_frac", ascending=False)
-    return fig_dir_base, df, sub_dfs
+    return fig_dir_base, tab_dir_base, df, sub_dfs
 
 
 # return fig_dir_base to avoid local variable error (and alternative: more complex
 # refactor)
-fig_dir_base, df, sub_dfs = get_df(
+fig_dir_base, tab_dir_base, df, sub_dfs = get_df(
     n_sobol, n_bayes, particles, max_parallel, use_saas=False
 )
 df["type"] = "GPEI"
 if use_saas:
-    fig_dir_base, saas_df = get_df(
+    fig_dir_base, tab_dir_base, saas_df, saas_sub_dfs = get_df(
         n_sobol, n_bayes, particles, max_parallel, use_saas=True
     )
     saas_df["type"] = "SAAS"
@@ -146,21 +146,30 @@ for key, sub_df in sub_dfs.items():
 
 main_df = pd.concat(list(sub_dfs.values()), axis=0)
 
-fig = px.box(
+# fig = px.box(
+#     main_df,
+#     x="lbl",
+#     y="vol_frac",
+#     points="all",
+#     width=450,
+#     height=450,
+#     labels=dict(
+#         vol_frac="Best In-sample Validated Volume Fraction"
+#     ),
+# )
+
+fig = px.strip(
     main_df,
     x="lbl",
     y="vol_frac",
-    points="all",
     width=450,
     height=450,
-    labels=dict(
-        vol_frac="Best In-sample Validated Volume Fraction (greater is better)"
-    ),
+    labels=dict(vol_frac="Best In-sample Validated Volume Fraction"),
 )
 
 fig.update_layout(showlegend=False)
 # decrease the font size of the y-axis label
-fig.update_yaxes(title_font=dict(size=10))
+# fig.update_yaxes(title_font=dict(size=10))
 
 # fig.update_xaxes(title_text="Search Space Type")
 fig.update_xaxes(title_text="")
@@ -180,8 +189,43 @@ offline.plot(fig)
 #     show=True,
 # )
 
+
+def make_lbl(kwargs):
+    remove_composition_degeneracy = kwargs["remove_composition_degeneracy"]
+    remove_scaling_degeneracy = kwargs["remove_scaling_degeneracy"]
+    use_order_constraint = kwargs["use_order_constraint"]
+    tmp_lbl = []
+    if remove_composition_degeneracy:
+        tmp_lbl.append("comp")
+    if remove_scaling_degeneracy:
+        tmp_lbl.append("size")
+    if use_order_constraint:
+        tmp_lbl.append("order")
+    if tmp_lbl == []:
+        lbl = "bounds<br>-only"
+    else:
+        lbl = "<br>".join(tmp_lbl)
+    return lbl
+
+
+lbls = []
+
+for kwargs in COMBS_KWARGS:
+    lbl = make_lbl(kwargs)
+    lbls.append(lbl)
+
+val_grp = main_df[["vol_frac", "lbl"]].groupby("lbl")
+val_results = pd.concat((val_grp.mean(), val_grp.std()), axis=1)
+val_results.columns = ["mean", "std"]
+val_results = val_results.loc[lbls]
+val_results.index.name = "type"
+val_results.index = val_results.index.str.replace("<br>", "-")
+val_results.index = val_results.index.str.replace("--", "-")
+val_results = val_results.round(3)
+val_results.to_csv(path.join(tab_dir_base, "val_results.csv"))
+
 # %% T-test
-lbls = df["lbl"]
+# lbls = df["lbl"]
 num_lbls = len(lbls)
 ttest_results = np.zeros((num_lbls, num_lbls))
 for i, i_lbl in enumerate(lbls):
