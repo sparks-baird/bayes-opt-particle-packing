@@ -7,6 +7,8 @@ Bayesian optimization of particle packing fractions for solid rocket propellant 
 To reproduce, this requires a proprietary Windows executable (renamed to
 `particle_packing_sim.exe`) and Python functions contained in an unreleased module named `proprietary.m` for writing the input files and reading the volume fraction from the output files. These files should be placed into the [boppf/utils](boppf/utils) directory.
 
+The manuscript is available at [DOI: 10.26434/chemrxiv-2022-nz2w8-v3](https://dx.doi.org/10.26434/chemrxiv-2022-nz2w8-v3).
+
 ## Installation
 
 A local installation can be performed via:
